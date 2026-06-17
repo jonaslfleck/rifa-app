@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import QRCode from 'qrcode'
 import { createClient } from '@/lib/supabase/client'
 import { buildPixPayload, normalizePixKey } from '@/lib/pix'
-import type { Rifa, Reserva } from '@/lib/types'
+import type { Rifa } from '@/lib/types'
 
 interface NumeroStatus { numero: number; status: 'reservado' | 'pago' }
 interface Props { rifa: Rifa | null; reservas: NumeroStatus[] }
@@ -89,23 +89,22 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const payloadRef = useRef('')
 
+  // Atualiza a grade de ocupados via RPC (sem expor nome/telefone).
+  async function refreshOcupados() {
+    if (!rifa) return
+    const { data } = await supabase.rpc('numeros_ocupados', { p_rifa_id: rifa.id })
+    if (data) setReservas(data as NumeroStatus[])
+  }
+
+  // Polling: atualiza a cada 20s e quando a aba volta ao foco.
   useEffect(() => {
     if (!rifa) return
-    const channel = supabase
-      .channel('reservas-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservas', filter: `rifa_id=eq.${rifa.id}` },
-        (payload) => {
-          const r = payload.new as Reserva
-          if (payload.eventType === 'INSERT')
-            setReservas(prev => [...prev, { numero: r.numero, status: r.status as 'reservado' | 'pago' }])
-          else if (payload.eventType === 'UPDATE')
-            setReservas(prev => prev.map(x => x.numero === r.numero ? { ...x, status: r.status as 'reservado' | 'pago' } : x))
-          else if (payload.eventType === 'DELETE')
-            setReservas(prev => prev.filter(x => x.numero !== (payload.old as Reserva).numero))
-        }
-      ).subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [rifa, supabase])
+    const id = setInterval(refreshOcupados, 20000)
+    const onVis = () => { if (document.visibilityState === 'visible') refreshOcupados() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rifa])
 
   useEffect(() => {
     if (!modalOpen || !rifa?.pix_key || !rifa?.pix_name || !canvasRef.current) return
@@ -174,14 +173,10 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           msg: 'Este número acabou de ser reservado por outra pessoa. Escolha outro número.'
         })
         // Recarrega a ocupação atual e remove da seleção o que já foi tomado.
-        const { data: atuais } = await supabase
-          .from('reservas')
-          .select('numero, status')
-          .eq('rifa_id', rifa.id)
-          .in('status', ['reservado', 'pago'])
+        const { data: atuais } = await supabase.rpc('numeros_ocupados', { p_rifa_id: rifa.id })
         if (atuais) {
           setReservas(atuais as NumeroStatus[])
-          const tomados = new Set(atuais.map(a => a.numero))
+          const tomados = new Set((atuais as NumeroStatus[]).map(a => a.numero))
           setSelecionados(prev => prev.filter(n => !tomados.has(n)))
         }
         return
@@ -209,6 +204,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     setSelecionados([])
     setNome('')
     setTelefone('')
+    refreshOcupados()
     setAlerta({
       tipo: 'ok',
       msg: 'Reserva feita! Efetue o pagamento via Pix para confirmar.'
@@ -238,12 +234,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       return
     }
     setConsultando(true)
-    const { data } = await supabase
-      .from('reservas')
-      .select('numero, status')
-      .eq('rifa_id', rifa.id)
-      .eq('telefone', tel)
-      .order('numero', { ascending: true })
+    const { data } = await supabase.rpc('meus_numeros', { p_rifa_id: rifa.id, p_telefone: tel })
     setConsultando(false)
     setConsultaResult((data ?? []) as NumeroStatus[])
   }

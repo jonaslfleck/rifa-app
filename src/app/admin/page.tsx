@@ -8,14 +8,15 @@ export default async function AdminPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  if (!user) redirect('/admin/login')
+
+  // Logado = role authenticated → enxerga admin_emails e as reservas (RLS admin).
   const { data: rifa } = await supabase
     .from('rifas')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
-
-  if (!user) redirect('/admin/login')
 
   const adminEmails: string[] = rifa?.admin_emails ?? []
   const isAdmin = adminEmails.map((e: string) => e.toLowerCase()).includes(user.email?.toLowerCase() ?? '')

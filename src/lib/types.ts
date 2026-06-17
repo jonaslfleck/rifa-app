@@ -10,7 +10,7 @@ export interface Rifa {
   pix_key: string | null
   pix_name: string | null
   pix_city: string | null
-  admin_emails: string[]
+  admin_emails?: string[]
   prizes: string[]
   created_at: string
 }
