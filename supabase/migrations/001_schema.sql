@@ -1,3 +1,9 @@
+-- ⚠️ RESET COMPLETO: apaga dados e estruturas existentes antes de recriar.
+drop trigger if exists reservas_updated_at on reservas;
+drop table if exists reservas cascade;
+drop table if exists rifas cascade;
+drop function if exists set_updated_at();
+
 create extension if not exists "pgcrypto";
 
 create table rifas (
@@ -119,3 +125,14 @@ values (
     'Jogo de cafézinho'
   ]
 );
+
+-- Garante os valores da campanha Juvenart 2026 (idempotente, mesmo em banco já populado).
+update rifas set
+  title        = 'Rifa das Pilchas de Vinícius Prezzi Fleck - DTG Camboatá',
+  description  = 'Adquira seus números e ajude a continuar o sonho do Juvenart 2026.',
+  price        = 5.00,
+  pix_type     = 'CPF',
+  pix_key      = '048.520.540-88',
+  pix_name     = 'VINICIUS PREZZI FLECK',
+  pix_city     = 'NOVO HAMBURGO',
+  admin_emails = array['tjfleck@gmail.com', 'nenahprezzi@gmail.com', 'nenahprezzi01@gmail.com'];

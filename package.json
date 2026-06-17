@@ -14,13 +14,15 @@
     "react-dom": "^18",
     "@supabase/supabase-js": "^2.43.4",
     "@supabase/ssr": "^0.3.0",
-    "qrcode": "^1.5.3"
+    "qrcode": "^1.5.3",
+    "nodemailer": "^6.9.14"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/qrcode": "^1.5.5",
+    "@types/nodemailer": "^6.4.15",
     "typescript": "^5",
     "tailwindcss": "^3.4.1",
     "autoprefixer": "^10.0.1",

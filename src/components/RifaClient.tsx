@@ -193,6 +193,18 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       return
     }
 
+    // Notifica os admins por email (não bloqueia nem falha a reserva).
+    fetch('/api/notificar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rifaId: rifa.id,
+        nome: nome.trim(),
+        telefone: telefone.replace(/\D/g, ''),
+        numeros: selecionados,
+      }),
+    }).catch(() => {})
+
     setModalOpen(false)
     setSelecionados([])
     setNome('')
@@ -466,7 +478,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 text-center">
                 <p className="text-xs font-medium text-emerald-800 mb-1">Pague via Pix após reservar</p>
                 <p className="text-xs text-emerald-600">{rifa.pix_type}: <strong className="text-emerald-900 break-all">{rifa.pix_key}</strong></p>
-                <p className="text-xs text-emerald-600 mb-3">Recebedor: <strong>{rifa.pix_name}</strong></p>
+                <p className="text-xs text-emerald-600">Recebedor: <strong>{rifa.pix_name}</strong></p>
+                <p className="text-xs text-emerald-600 mb-3">Banco: <strong>Sicredi</strong></p>
                 <canvas ref={canvasRef} className="rounded-xl mx-auto block mb-3" />
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
                   <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-emerald-400 text-emerald-700 rounded-lg px-3 py-2 text-xs hover:bg-emerald-100 transition-colors font-medium">

@@ -87,6 +87,14 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
     else setReservas(prev => prev.map(r => r.id === id ? { ...r, status } : r))
   }
 
+  // Link wa.me com mensagem pronta confirmando o pagamento ao comprador.
+  function whatsappLink(r: Reserva) {
+    let tel = (r.telefone ?? '').replace(/\D/g, '')
+    if (tel.length <= 11) tel = '55' + tel // adiciona DDI do Brasil se faltar
+    const msg = `Olá ${r.nome}! ✅ Confirmamos o pagamento do número #${r.numero} da "${rifa.title}". Boa sorte no sorteio! 🍀 — DTG Camboatá`
+    return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`
+  }
+
   async function logout() {
     await supabase.auth.signOut()
     window.location.href = '/admin/login'
@@ -287,7 +295,10 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
                       </div>
                       <p className="text-xs text-gray-500">{r.nome} · {r.telefone}</p>
                     </div>
-                    <button onClick={() => updateReserva(r.id, 'cancelado')} className="border border-red-200 text-red-400 rounded-lg px-2 py-1 text-xs hover:bg-red-50 shrink-0 transition-colors">✕</button>
+                    <div className="flex gap-1.5 shrink-0">
+                      <a href={whatsappLink(r)} target="_blank" rel="noopener noreferrer" className="border border-emerald-300 text-emerald-700 rounded-lg px-2.5 py-1 text-xs hover:bg-emerald-50 font-medium transition-colors">💬 WhatsApp</a>
+                      <button onClick={() => updateReserva(r.id, 'cancelado')} className="border border-red-200 text-red-400 rounded-lg px-2 py-1 text-xs hover:bg-red-50 transition-colors">✕</button>
+                    </div>
                   </div>
                 ))}
             </div>
