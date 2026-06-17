@@ -2,7 +2,7 @@
 
 ## Stack
 - **Next.js 14** (App Router)
-- **Supabase** — banco de dados PostgreSQL + autenticação Google OAuth + realtime
+- **Supabase** — banco de dados PostgreSQL + autenticação por email/senha + realtime
 - **Vercel** — hospedagem
 
 ---
@@ -21,16 +21,16 @@ supabase/migrations/001_schema.sql
 ```
 Clique em **Run**.
 
-### 1.3 Configurar Google OAuth
-1. Acesse https://console.cloud.google.com
-2. Crie um projeto > APIs & Services > Credentials > Create OAuth 2.0 Client ID
-3. Em **Authorized redirect URIs**, adicione:
-   ```
-   https://<seu-projeto>.supabase.co/auth/v1/callback
-   ```
-4. No Supabase: **Authentication > Providers > Google**
-5. Cole o **Client ID** e **Client Secret** do Google
-6. Ative o provider
+### 1.3 Criar os usuários admin (email/senha)
+1. No Supabase: **Authentication > Users > Add user > Create new user**
+2. Informe o **email** (ex.: `tjfleck@gmail.com`) e uma **senha**
+3. Marque **Auto Confirm User**
+4. Repita para cada admin
+5. (Opcional, recomendado) Desative o cadastro público em
+   **Authentication > Sign In / Providers > Email > Allow new users to sign up**
+
+> A autorização é feita pela lista `admin_emails` da rifa: mesmo logado, quem
+> não estiver na lista cai em `/admin/unauthorized`.
 
 ---
 
@@ -72,27 +72,19 @@ vercel
 3. Em **Environment Variables**, adicione as três variáveis do `.env.local`
 4. Clique em **Deploy**
 
-### 4.3 Atualizar redirect URI do Google
-Após o deploy, adicione a URL da Vercel no Google Console:
-```
-https://<seu-app>.vercel.app/auth/callback
-```
-E no Supabase: **Authentication > URL Configuration > Redirect URLs**, adicione:
-```
-https://<seu-app>.vercel.app/auth/callback
-```
+> A autenticação é por email/senha (não usa OAuth), então não há redirect URIs
+> a configurar na Vercel.
 
 ---
 
 ## 5. Primeiro acesso admin
 
-1. Acesse `/admin` e faça login com Google
-2. Será redirecionado para `/admin/unauthorized` (seu e-mail ainda não está na lista)
-3. No Supabase SQL Editor, rode:
+1. Crie seu usuário em **Authentication > Users** (ver passo 1.3)
+2. Garanta que seu email está na lista de admins:
    ```sql
    update rifas set admin_emails = array['seu@gmail.com'];
    ```
-4. Acesse `/admin` novamente — agora terá acesso
+3. Acesse `/admin/login`, entre com email e senha — terá acesso ao painel
 
 ---
 
@@ -104,12 +96,12 @@ src/
     page.tsx              ← página pública da rifa
     admin/
       page.tsx            ← painel admin (protegido)
-      login/page.tsx      ← login com Google
+      login/page.tsx      ← login por email/senha
       unauthorized/page.tsx
-    auth/callback/route.ts ← callback OAuth
     api/
       rifa/route.ts       ← PATCH config da rifa
       reservas/route.ts   ← PATCH confirmar/cancelar
+      notificar/route.ts  ← POST email aos admins na reserva
   components/
     RifaClient.tsx        ← grid de números + modal Pix
     AdminClient.tsx       ← painel admin completo
