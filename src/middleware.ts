@@ -36,5 +36,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  // Inclui a rota /admin exata além das subrotas (/admin/:path* sozinho pode
+  // não casar com /admin, deixando a página que faz o redirect sem sessão).
+  matcher: ['/admin', '/admin/:path*'],
 }
