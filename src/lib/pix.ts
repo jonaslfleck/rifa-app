@@ -12,13 +12,19 @@ function emv(id: string, value: string): string {
   return id + String(value.length).padStart(2, '0') + value
 }
 
+// Chaves CPF/CNPJ/telefone devem ir no payload apenas com dígitos.
+// E-mail e chave aleatória não são afetados (não têm pontuação a remover).
+export function normalizePixKey(key: string): string {
+  return key.includes('@') ? key.trim() : key.replace(/[.\-/()\s]/g, '')
+}
+
 export function buildPixPayload(
   key: string,
   name: string,
   city: string,
   amount: number
 ): string {
-  const merchant = emv('00', 'BR.GOV.BCB.PIX') + emv('01', key)
+  const merchant = emv('00', 'BR.GOV.BCB.PIX') + emv('01', normalizePixKey(key))
   const gui = emv('26', merchant)
   const am = amount > 0 ? emv('54', amount.toFixed(2)) : ''
   const info = emv('62', emv('05', '***'))

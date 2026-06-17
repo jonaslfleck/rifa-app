@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import QRCode from 'qrcode'
 import { createClient } from '@/lib/supabase/client'
-import { buildPixPayload } from '@/lib/pix'
+import { buildPixPayload, normalizePixKey } from '@/lib/pix'
 import type { Rifa, Reserva } from '@/lib/types'
 
 interface NumeroStatus { numero: number; status: 'reservado' | 'pago' }
@@ -80,7 +80,12 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const [alerta, setAlerta] = useState<{ tipo: 'ok' | 'err'; msg: string } | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedKey, setCopiedKey] = useState(false)
   const [showPrizes, setShowPrizes] = useState(false)
+  const [showConsulta, setShowConsulta] = useState(false)
+  const [consultaTel, setConsultaTel] = useState('')
+  const [consultaResult, setConsultaResult] = useState<NumeroStatus[] | null>(null)
+  const [consultando, setConsultando] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const payloadRef = useRef('')
 
@@ -153,7 +158,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         rifa_id: rifa.id,
         numero,
         nome: nome.trim(),
-        telefone: telefone.trim(),
+        telefone: telefone.replace(/\D/g, ''),
         status: 'reservado'
       }))
     )
@@ -162,9 +167,28 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
     if (error) {
       setModalOpen(false)
+      // 23505 = violação do índice único (rifa_id, numero): alguém reservou antes.
+      if (error.code === '23505') {
+        setAlerta({
+          tipo: 'err',
+          msg: 'Este número acabou de ser reservado por outra pessoa. Escolha outro número.'
+        })
+        // Recarrega a ocupação atual e remove da seleção o que já foi tomado.
+        const { data: atuais } = await supabase
+          .from('reservas')
+          .select('numero, status')
+          .eq('rifa_id', rifa.id)
+          .in('status', ['reservado', 'pago'])
+        if (atuais) {
+          setReservas(atuais as NumeroStatus[])
+          const tomados = new Set(atuais.map(a => a.numero))
+          setSelecionados(prev => prev.filter(n => !tomados.has(n)))
+        }
+        return
+      }
       setAlerta({
         tipo: 'err',
-        msg: 'Erro ao reservar. Alguns números podem ter sido tomados.'
+        msg: 'Erro ao reservar. Tente novamente.'
       })
       return
     }
@@ -187,36 +211,133 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function copyPixKey() {
+    if (!rifa?.pix_key) return
+    await navigator.clipboard.writeText(normalizePixKey(rifa.pix_key))
+    setCopiedKey(true)
+    setTimeout(() => setCopiedKey(false), 2000)
+  }
+
+  async function consultarNumeros() {
+    if (!rifa) return
+    const tel = consultaTel.replace(/\D/g, '')
+    if (tel.length < 8) {
+      setConsultaResult([])
+      return
+    }
+    setConsultando(true)
+    const { data } = await supabase
+      .from('reservas')
+      .select('numero, status')
+      .eq('rifa_id', rifa.id)
+      .eq('telefone', tel)
+      .order('numero', { ascending: true })
+    setConsultando(false)
+    setConsultaResult((data ?? []) as NumeroStatus[])
+  }
+
   const fmtDate = (d: string) => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}` }
 
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white px-4 pt-10 pb-8">
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white px-4 pt-9 pb-8">
         <div className="max-w-2xl mx-auto">
-          <p className="text-emerald-300 text-xs font-medium tracking-widest uppercase mb-2">🍀 Rifa das Pilchas</p>
-          <h1 className="text-3xl font-semibold leading-tight mb-1">{rifa.title}</h1>
-          {rifa.description && <p className="text-emerald-200 text-sm mt-1">{rifa.description}</p>}
-          <div className="flex gap-5 mt-4 flex-wrap">
+          <p className="text-emerald-300 text-sm font-semibold tracking-widest uppercase mb-3">🍀 DTG Camboatá</p>
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight bg-white/10 border border-emerald-400/30 rounded-2xl px-4 py-3">
+            {rifa.title}
+          </h1>
+          <div className="grid grid-cols-2 sm:flex sm:gap-6 gap-3 mt-5">
             <div>
               <p className="text-emerald-400 text-xs">Valor por número</p>
-              <p className="text-white font-semibold text-lg">R$ {rifa.price.toFixed(2).replace('.', ',')}</p>
+              <p className="text-white font-bold text-xl">R$ {rifa.price.toFixed(2).replace('.', ',')}</p>
             </div>
             {rifa.draw_date && (
               <div>
                 <p className="text-emerald-400 text-xs">Data do sorteio</p>
-                <p className="text-white font-semibold text-lg">{fmtDate(rifa.draw_date)}</p>
+                <p className="text-white font-bold text-xl">{fmtDate(rifa.draw_date)}</p>
               </div>
             )}
             <div>
               <p className="text-emerald-400 text-xs">Disponíveis</p>
-              <p className="text-white font-semibold text-lg">{disponiveis} de {nums.length}</p>
+              <p className="text-white font-bold text-xl">{disponiveis} de {nums.length}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+
+        {/* Card campanha Juvenart 2026 */}
+        {rifa.description && (
+          <div className="bg-gradient-to-r from-amber-50 to-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+            <span className="text-2xl shrink-0">🌟</span>
+            <div>
+              <p className="text-sm font-semibold text-emerald-900">Campanha Juvenart 2026</p>
+              <p className="text-sm text-emerald-800 mt-0.5">{rifa.description}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Consulta: Ver meus números */}
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowConsulta(v => !v)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-emerald-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔎</span>
+              <div className="text-left">
+                <p className="font-medium text-gray-900 text-sm">Ver meus números</p>
+                <p className="text-xs text-gray-400">Consulte pelo seu telefone</p>
+              </div>
+            </div>
+            <span className={`text-gray-400 transition-transform ${showConsulta ? 'rotate-180' : ''}`}>▾</span>
+          </button>
+          {showConsulta && (
+            <div className="px-5 pb-5 pt-1 border-t border-gray-100 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={consultaTel}
+                  onChange={e => setConsultaTel(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') consultarNumeros() }}
+                  placeholder="(00) 00000-0000"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-stone-50"
+                />
+                <button
+                  onClick={consultarNumeros}
+                  disabled={consultando}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl px-5 py-3 text-sm font-medium disabled:opacity-50 transition-colors"
+                >
+                  {consultando ? 'Buscando...' : 'Buscar'}
+                </button>
+              </div>
+              {consultaResult !== null && (
+                consultaResult.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-2">Nenhum número encontrado para este telefone.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {consultaResult.map(r => (
+                      <span
+                        key={r.numero}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium border ${
+                          r.status === 'pago'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : 'bg-amber-50 border-amber-200 text-amber-700'
+                        }`}
+                      >
+                        <strong>{r.numero}</strong>
+                        <span className="text-xs">{r.status === 'pago' ? '✓ Pago' : '⏳ Reservado'}</span>
+                      </span>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Botão ver prêmios */}
         <button
@@ -264,16 +385,16 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
         {/* Grid de números */}
         <div>
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))' }}>
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))' }}>
             {nums.map(n => {
               const st = statusMap[n]
               const sel = selecionados.includes(n)
               if (st === 'pago') return (
-                <div key={n} className="h-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-sm text-gray-300 line-through cursor-not-allowed select-none">
+                <div key={n} className="h-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-base text-gray-300 line-through cursor-not-allowed select-none">
                   {n}
                 </div>
               )
-              let cls = 'h-12 rounded-xl border text-sm font-medium transition-all select-none '
+              let cls = 'h-14 rounded-xl border text-base font-semibold transition-all select-none '
               if (st === 'reservado') cls += 'bg-amber-50 border-amber-200 text-amber-600 cursor-not-allowed'
               else if (sel) cls += 'bg-emerald-50 border-2 border-emerald-500 text-emerald-800 shadow-sm'
               else cls += 'bg-white border-gray-200 text-gray-700 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer active:scale-95'
@@ -310,10 +431,10 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={abrirModal} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
+              <button onClick={abrirModal} className="flex-1 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white rounded-xl py-3.5 text-base font-semibold transition-all">
                 Reservar {selecionados.length} número{selecionados.length > 1 ? 's' : ''}
               </button>
-              <button onClick={() => setSelecionados([])} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+              <button onClick={() => setSelecionados([])} className="border border-gray-200 rounded-xl px-5 py-3.5 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
                 Limpar
               </button>
             </div>
@@ -347,17 +468,22 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 <p className="text-xs text-emerald-600">{rifa.pix_type}: <strong className="text-emerald-900 break-all">{rifa.pix_key}</strong></p>
                 <p className="text-xs text-emerald-600 mb-3">Recebedor: <strong>{rifa.pix_name}</strong></p>
                 <canvas ref={canvasRef} className="rounded-xl mx-auto block mb-3" />
-                <button onClick={copyPayload} className="inline-flex items-center gap-1.5 border border-emerald-400 text-emerald-700 rounded-lg px-3 py-1.5 text-xs hover:bg-emerald-100 transition-colors font-medium">
-                  {copied ? '✓ Copiado!' : '⧉ Copiar código Pix'}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-emerald-400 text-emerald-700 rounded-lg px-3 py-2 text-xs hover:bg-emerald-100 transition-colors font-medium">
+                    {copiedKey ? '✓ Chave copiada!' : '🔑 Copiar chave PIX'}
+                  </button>
+                  <button onClick={copyPayload} className="inline-flex items-center justify-center gap-1.5 border border-emerald-400 text-emerald-700 rounded-lg px-3 py-2 text-xs hover:bg-emerald-100 transition-colors font-medium">
+                    {copied ? '✓ Copiado!' : '⧉ Copiar código Pix'}
+                  </button>
+                </div>
               </div>
             )}
 
             <div className="flex gap-2">
-              <button onClick={() => setModalOpen(false)} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
+              <button onClick={() => setModalOpen(false)} className="flex-1 border border-gray-200 rounded-xl py-3.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
-              <button onClick={confirmarReserva} disabled={enviando} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50 transition-colors">
+              <button onClick={confirmarReserva} disabled={enviando} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl py-3.5 text-base font-semibold disabled:opacity-50 transition-colors">
                 {enviando ? 'Reservando...' : 'Confirmar'}
               </button>
             </div>

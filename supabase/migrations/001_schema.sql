@@ -46,14 +46,18 @@ create trigger reservas_updated_at
   before update on reservas
   for each row execute function set_updated_at();
 
-insert into rifas (title, description, total_numbers, start_number, price, admin_emails, prizes)
+insert into rifas (title, description, total_numbers, start_number, price, pix_type, pix_key, pix_name, pix_city, admin_emails, prizes)
 values (
-  'Rifa das Pilchas',
-  '58 chances de ganhar prêmios incríveis!',
+  'Rifa das Pilchas de Vinícius Prezzi Fleck - DTG Camboatá',
+  'Adquira seus números e ajude a continuar o sonho do Juvenart 2026.',
   80,
   5521,
-  20.00,
-  array['nenahprezzi@gmail.com', 'nenahprezzi01@gmail.com', 'tjfleck@gmail.com'],
+  5.00,
+  'CPF',
+  '048.520.540-88',
+  'VINICIUS PREZZI FLECK',
+  'NOVO HAMBURGO',
+  array['tjfleck@gmail.com', 'nenahprezzi@gmail.com', 'nenahprezzi01@gmail.com'],
   array[
     'Faca do Camboatá',
     'Bolsa de couro masculina',
