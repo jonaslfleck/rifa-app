@@ -91,6 +91,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const [consultando, setConsultando] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const payloadRef = useRef('')
+  const reservaSectionRef = useRef<HTMLDivElement>(null)
 
   // Atualiza a grade de ocupados via RPC (sem expor nome/telefone).
   async function refreshOcupados() {
@@ -192,16 +193,19 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     return /^[1-9]{2}(?:9\d{8}|\d{8})$/.test(d)
   }
 
+  const telefoneDigitado = onlyDigits(telefone).length > 0
+  const telefoneValido = isValidBrazilPhone(telefone)
+
+  function irParaReserva() {
+    reservaSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   function toggleNum(n: number) {
     setSelecionados(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n].sort((a, b) => a - b))
   }
 
   function abrirModal() {
     if (!nome.trim() || !telefone.trim()) { setAlerta({ tipo: 'err', msg: 'Preencha nome e telefone.' }); return }
-    if (!isValidBrazilPhone(telefone)) {
-      setAlerta({ tipo: 'err', msg: 'Informe um telefone válido no formato brasileiro, com DDD. Ex.: (51) 99999-9999.' })
-      return
-    }
     const ocupados = selecionados.filter(n => statusMap[n])
     if (ocupados.length > 0) {
       setAlerta({ tipo: 'err', msg: `Número(s) ${ocupados.join(', ')} já reservados. Remova-os.` })
@@ -513,9 +517,16 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         <div className="bg-white border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-3">
             <h3 className="text-base sm:text-lg font-bold text-red-700">Escolha seus números</h3>
-            <span className="text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2.5 py-1">
-              {disponiveis} disponíveis
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2.5 py-1">
+                {disponiveis} disponíveis
+              </span>
+              {selecionados.length > 0 && (
+                <button onClick={irParaReserva} className="text-xs font-semibold bg-red-100 text-red-700 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-200 transition-colors">
+                  Ir para reserva ({selecionados.length})
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Legenda */}
@@ -551,7 +562,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
         {/* Barra de seleção */}
         {selecionados.length > 0 && (
-          <div className="bg-white border-2 border-red-200 rounded-2xl p-5 shadow-md">
+          <div ref={reservaSectionRef} className="bg-white border-2 border-red-200 rounded-2xl p-5 shadow-md">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-sm text-stone-700 font-medium mb-1">Números selecionados</p>
@@ -569,14 +580,17 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               </div>
               <div>
                 <label className="text-sm text-stone-800 font-semibold block mb-1.5">Telefone (WhatsApp)</label>
-                <input type="tel" inputMode="numeric" value={telefone} onChange={e => setTelefone(formatBrazilPhone(e.target.value))} maxLength={16} placeholder="Ex.: (51) 99999-9999" className="w-full border border-stone-300 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-stone-900 placeholder:text-stone-500" />
+                <input type="tel" inputMode="numeric" value={telefone} onChange={e => setTelefone(formatBrazilPhone(e.target.value))} maxLength={16} placeholder="Ex.: (51) 99999-9999" className={`w-full border rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 bg-white text-stone-900 placeholder:text-stone-500 ${telefoneDigitado && !telefoneValido ? 'border-red-400 focus:ring-red-300' : 'border-stone-300 focus:ring-amber-400'}`} />
+                {telefoneDigitado && !telefoneValido && (
+                  <p className="mt-1.5 text-sm text-red-700 font-medium">Telefone inválido. Use DDD + número, ex.: (51) 99999-9999.</p>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
               <button onClick={abrirModal} className="flex-1 bg-red-700 hover:bg-red-800 active:scale-[0.99] text-white rounded-xl py-3.5 text-base font-semibold transition-all">
                 Reservar {selecionados.length} número{selecionados.length > 1 ? 's' : ''}
               </button>
-              <button onClick={() => setSelecionados([])} className="border border-gray-200 rounded-xl px-5 py-3.5 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+              <button onClick={() => setSelecionados([])} className="border border-gray-300 rounded-xl px-5 py-3.5 text-base font-semibold text-stone-700 hover:bg-gray-50 transition-colors">
                 Limpar
               </button>
             </div>
@@ -626,6 +640,14 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               {nome}, você está reservando {selecionados.length} número{selecionados.length > 1 ? 's' : ''}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-amber-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
             </p>
 
+            {!telefoneValido && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+                <p className="text-sm text-red-700 font-semibold">
+                  Número de telefone inválido. Corrija o telefone na seção de reserva para confirmar.
+                </p>
+              </div>
+            )}
+
             {rifa.pix_key && rifa.pix_name && (
               <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mb-4 text-center">
                 <p className="text-sm font-semibold text-stone-900 mb-2">Pague via Pix após reservar</p>
@@ -653,7 +675,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               <button onClick={() => setModalOpen(false)} className="flex-1 border border-gray-200 rounded-xl py-3.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
-              <button onClick={confirmarReserva} disabled={enviando} className="flex-1 bg-red-700 hover:bg-red-800 text-white rounded-xl py-3.5 text-base font-semibold disabled:opacity-50 transition-colors">
+              <button onClick={confirmarReserva} disabled={enviando || !telefoneValido} className="flex-1 bg-red-700 hover:bg-red-800 text-white rounded-xl py-3.5 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 {enviando ? 'Reservando...' : 'Confirmar'}
               </button>
             </div>
