@@ -247,41 +247,41 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
-      <div className="bg-gradient-to-br from-stone-800 to-stone-950 text-white px-4 pt-7 pb-8">
+      <div className="bg-gradient-to-br from-stone-800 to-stone-950 text-white px-4 pt-6 pb-8">
         <div className="max-w-2xl mx-auto">
-          <p className="text-amber-400 text-xs font-bold tracking-widest uppercase mb-4">🍀 DTG Camboatá</p>
-          <div className="flex items-center justify-between gap-4 mb-5">
+          <p className="text-amber-400 text-xs font-bold tracking-widest uppercase mb-3">🍀 DTG Camboatá</p>
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight bg-white/10 border border-stone-500/30 rounded-2xl px-4 py-3 mb-5">
+            {rifa.title}
+          </h1>
+          <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2 sm:flex sm:items-center sm:gap-5">
             <Image
               src={logoCamboata}
               alt="Logo DTG Camboata"
-              className="h-14 sm:h-16 w-auto object-contain"
+              className="h-14 min-[380px]:h-16 sm:h-24 w-auto object-contain shrink-0"
               priority
             />
+            <div className="flex-1 flex flex-col gap-2 sm:gap-3 min-w-0">
+              <div>
+                <p className="text-stone-400 text-xs">Valor por número</p>
+                <p className="text-white font-bold text-base min-[380px]:text-lg sm:text-xl">R$ {rifa.price.toFixed(2).replace('.', ',')}</p>
+              </div>
+              {rifa.draw_date && (
+                <div>
+                  <p className="text-stone-400 text-xs">Data do sorteio</p>
+                  <p className="text-white font-bold text-base min-[380px]:text-lg sm:text-xl">{fmtDate(rifa.draw_date)}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-stone-400 text-xs">Disponíveis</p>
+                <p className="text-white font-bold text-base min-[380px]:text-lg sm:text-xl">{disponiveis} de {nums.length}</p>
+              </div>
+            </div>
             <Image
               src={logoAtiradores}
               alt="Logo Atiradores"
-              className="h-12 sm:h-14 w-auto object-contain"
+              className="h-12 min-[380px]:h-14 sm:h-20 w-auto object-contain shrink-0"
               priority
             />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight bg-white/10 border border-stone-500/30 rounded-2xl px-4 py-3">
-            {rifa.title}
-          </h1>
-          <div className="grid grid-cols-2 sm:flex sm:gap-6 gap-3 mt-5">
-            <div>
-              <p className="text-stone-400 text-xs">Valor por número</p>
-              <p className="text-white font-bold text-xl">R$ {rifa.price.toFixed(2).replace('.', ',')}</p>
-            </div>
-            {rifa.draw_date && (
-              <div>
-                <p className="text-stone-400 text-xs">Data do sorteio</p>
-                <p className="text-white font-bold text-xl">{fmtDate(rifa.draw_date)}</p>
-              </div>
-            )}
-            <div>
-              <p className="text-stone-400 text-xs">Disponíveis</p>
-              <p className="text-white font-bold text-xl">{disponiveis} de {nums.length}</p>
-            </div>
           </div>
         </div>
       </div>
@@ -294,14 +294,86 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           </p>
         </div>
 
+        {/* Legenda */}
+        <div className="flex gap-4 flex-wrap text-xs text-gray-400">
+          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-white inline-block"></span>Disponível</span>
+          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border-2 border-amber-500 bg-amber-50 inline-block"></span>Selecionado</span>
+          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-amber-300 bg-amber-50 inline-block"></span>Reservado</span>
+          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-gray-100 inline-block"></span>Pago</span>
+        </div>
+
+        {/* Grid de números */}
+        <div>
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))' }}>
+            {nums.map(n => {
+              const st = statusMap[n]
+              const sel = selecionados.includes(n)
+              if (st === 'pago') return (
+                <div key={n} className="h-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-base text-gray-300 line-through cursor-not-allowed select-none">
+                  {n}
+                </div>
+              )
+              let cls = 'h-14 rounded-xl border text-base font-semibold transition-all select-none '
+              if (st === 'reservado') cls += 'bg-amber-50 border-amber-200 text-amber-600 cursor-not-allowed'
+              else if (sel) cls += 'bg-amber-50 border-2 border-amber-500 text-amber-800 shadow-sm'
+              else cls += 'bg-white border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700 hover:bg-amber-50 cursor-pointer active:scale-95'
+              return (
+                <button key={n} className={cls} disabled={st === 'reservado'} onClick={() => toggleNum(n)}>
+                  {n}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Barra de seleção */}
+        {selecionados.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs text-gray-400 mb-0.5">Números selecionados</p>
+                <p className="font-semibold text-amber-700 text-base">{selecionados.join(', ')}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-400 mb-0.5">Total</p>
+                <p className="font-semibold text-gray-900">R$ {total.toFixed(2).replace('.', ',')}</p>
+              </div>
+            </div>
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Nome completo</label>
+                <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-stone-50" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Telefone (WhatsApp)</label>
+                <input type="text" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="(00) 00000-0000" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-stone-50" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={abrirModal} className="flex-1 bg-stone-800 hover:bg-stone-900 active:scale-[0.99] text-white rounded-xl py-3.5 text-base font-semibold transition-all">
+                Reservar {selecionados.length} número{selecionados.length > 1 ? 's' : ''}
+              </button>
+              <button onClick={() => setSelecionados([])} className="border border-gray-200 rounded-xl px-5 py-3.5 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+                Limpar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {alerta && (
+          <div className={`rounded-xl px-4 py-3 text-sm ${alerta.tipo === 'ok' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            {alerta.msg}
+          </div>
+        )}
+
         {/* Missão — Juvenart 2026 */}
-        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl px-5 py-6 text-white">
+        <div className="bg-gradient-to-br from-stone-800 to-stone-950 rounded-2xl px-5 py-6 text-white">
           <div className="flex items-start gap-4">
             <div>
               <h2 className="text-base sm:text-lg font-bold leading-snug mb-2">
                 Ajude nossa Invernada Juvenil a representar o DTG Camboatá no Juvenart 2026!
               </h2>
-              <p className="text-emerald-200 text-sm leading-relaxed">
+              <p className="text-stone-300 text-sm leading-relaxed">
                 Cada número vendido ajuda a custear transporte, alimentação, hospedagem e despesas necessárias para que nossos jovens possam levar a tradição gaúcha adiante.
               </p>
             </div>
@@ -356,11 +428,11 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
         {/* Descrição dinâmica (admin) */}
         {rifa.description && (
-          <div className="bg-gradient-to-r from-amber-50 to-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+          <div className="bg-gradient-to-r from-amber-50 to-stone-50 border border-stone-200 rounded-2xl px-5 py-4 flex items-start gap-3">
             <span className="text-2xl shrink-0">🌟</span>
             <div>
-              <p className="text-sm font-semibold text-emerald-900">Informações adicionais</p>
-              <p className="text-sm text-emerald-800 mt-0.5">{rifa.description}</p>
+              <p className="text-sm font-semibold text-stone-800">Informações adicionais</p>
+              <p className="text-sm text-stone-700 mt-0.5">{rifa.description}</p>
             </div>
           </div>
         )}
@@ -369,7 +441,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
           <button
             onClick={() => setShowConsulta(v => !v)}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-emerald-50 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-stone-50 transition-colors"
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">🔎</span>
@@ -390,12 +462,12 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                   onChange={e => setConsultaTel(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') consultarNumeros() }}
                   placeholder="(00) 00000-0000"
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-stone-50"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-300 bg-stone-50"
                 />
                 <button
                   onClick={consultarNumeros}
                   disabled={consultando}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl px-5 py-3 text-sm font-medium disabled:opacity-50 transition-colors"
+                  className="bg-stone-700 hover:bg-stone-800 text-white rounded-xl px-5 py-3 text-sm font-medium disabled:opacity-50 transition-colors"
                 >
                   {consultando ? 'Buscando...' : 'Buscar'}
                 </button>
@@ -410,7 +482,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                         key={r.numero}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium border ${
                           r.status === 'pago'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            ? 'bg-stone-100 border-stone-300 text-stone-700'
                             : 'bg-amber-50 border-amber-200 text-amber-700'
                         }`}
                       >
@@ -428,7 +500,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         {/* Botão ver prêmios */}
         <button
           onClick={() => setShowPrizes(v => !v)}
-          className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-5 py-4 hover:border-emerald-300 hover:bg-emerald-50 transition-colors group"
+          className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-5 py-4 hover:border-amber-300 hover:bg-amber-50 transition-colors group"
         >
           <div className="flex items-center gap-3">
             <span className="text-2xl">🏆</span>
@@ -443,8 +515,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         {/* Lista de prêmios */}
         {showPrizes && (
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 bg-emerald-50">
-              <p className="text-sm font-medium text-emerald-900">🏆 Relação dos prêmios — 58 chances de ganhar!</p>
+            <div className="px-5 py-4 border-b border-gray-100 bg-amber-50">
+              <p className="text-sm font-medium text-amber-900">🏆 Relação dos prêmios — 58 chances de ganhar!</p>
             </div>
             <div className="divide-y divide-gray-100">
               {PRIZES.map(p => (
@@ -455,90 +527,18 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 </div>
               ))}
             </div>
-            <div className="px-5 py-3 bg-emerald-50 border-t border-gray-100 text-center">
-              <p className="text-xs text-emerald-700 font-medium">🍀 58 chances de ganhar!</p>
+            <div className="px-5 py-3 bg-amber-50 border-t border-gray-100 text-center">
+              <p className="text-xs text-amber-700 font-medium">🍀 58 chances de ganhar!</p>
             </div>
-          </div>
-        )}
-
-        {/* Legenda */}
-        <div className="flex gap-4 flex-wrap text-xs text-gray-400">
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-white inline-block"></span>Disponível</span>
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border-2 border-emerald-500 bg-emerald-50 inline-block"></span>Selecionado</span>
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-amber-300 bg-amber-50 inline-block"></span>Reservado</span>
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-gray-100 inline-block"></span>Pago</span>
-        </div>
-
-        {/* Grid de números */}
-        <div>
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))' }}>
-            {nums.map(n => {
-              const st = statusMap[n]
-              const sel = selecionados.includes(n)
-              if (st === 'pago') return (
-                <div key={n} className="h-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-base text-gray-300 line-through cursor-not-allowed select-none">
-                  {n}
-                </div>
-              )
-              let cls = 'h-14 rounded-xl border text-base font-semibold transition-all select-none '
-              if (st === 'reservado') cls += 'bg-amber-50 border-amber-200 text-amber-600 cursor-not-allowed'
-              else if (sel) cls += 'bg-emerald-50 border-2 border-emerald-500 text-emerald-800 shadow-sm'
-              else cls += 'bg-white border-gray-200 text-gray-700 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer active:scale-95'
-              return (
-                <button key={n} className={cls} disabled={st === 'reservado'} onClick={() => toggleNum(n)}>
-                  {n}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Barra de seleção */}
-        {selecionados.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Números selecionados</p>
-                <p className="font-semibold text-emerald-700 text-base">{selecionados.join(', ')}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-400 mb-0.5">Total</p>
-                <p className="font-semibold text-gray-900">R$ {total.toFixed(2).replace('.', ',')}</p>
-              </div>
-            </div>
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="text-xs text-gray-400 block mb-1">Nome completo</label>
-                <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-stone-50" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 block mb-1">Telefone (WhatsApp)</label>
-                <input type="text" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="(00) 00000-0000" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-stone-50" />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={abrirModal} className="flex-1 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white rounded-xl py-3.5 text-base font-semibold transition-all">
-                Reservar {selecionados.length} número{selecionados.length > 1 ? 's' : ''}
-              </button>
-              <button onClick={() => setSelecionados([])} className="border border-gray-200 rounded-xl px-5 py-3.5 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
-                Limpar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {alerta && (
-          <div className={`rounded-xl px-4 py-3 text-sm ${alerta.tipo === 'ok' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {alerta.msg}
           </div>
         )}
 
         {/* Seção final */}
-        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl px-5 py-7 text-center">
+        <div className="bg-gradient-to-br from-stone-800 to-stone-950 rounded-2xl px-5 py-7 text-center">
           <p className="text-sm sm:text-base italic font-semibold text-amber-400 mb-2 leading-snug">
             &ldquo;Quem apoia nossos jovens, ajuda a manter viva a tradição.&rdquo;
           </p>
-          <p className="text-xs text-emerald-400 mt-2">DTG Camboatá — Juvenart 2026</p>
+          <p className="text-xs text-stone-400 mt-2">DTG Camboatá — Juvenart 2026</p>
         </div>
 
         {/* Rodapé */}
@@ -553,21 +553,21 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
             <h2 className="text-base font-semibold mb-1">Confirmar reserva</h2>
             <p className="text-sm text-gray-500 mb-4">
-              {nome}, você está reservando {selecionados.length} número{selecionados.length > 1 ? 's' : ''}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-emerald-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
+              {nome}, você está reservando {selecionados.length} número{selecionados.length > 1 ? 's' : ''}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-amber-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
             </p>
 
             {rifa.pix_key && rifa.pix_name && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 text-center">
-                <p className="text-xs font-medium text-emerald-800 mb-1">Pague via Pix após reservar</p>
-                <p className="text-xs text-emerald-600">{rifa.pix_type}: <strong className="text-emerald-900 break-all">{rifa.pix_key}</strong></p>
-                <p className="text-xs text-emerald-600">Recebedor: <strong>{rifa.pix_name}</strong></p>
-                <p className="text-xs text-emerald-600 mb-3">Banco: <strong>Sicredi</strong></p>
+              <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mb-4 text-center">
+                <p className="text-xs font-medium text-stone-800 mb-1">Pague via Pix após reservar</p>
+                <p className="text-xs text-stone-600">{rifa.pix_type}: <strong className="text-stone-900 break-all">{rifa.pix_key}</strong></p>
+                <p className="text-xs text-stone-600">Recebedor: <strong>{rifa.pix_name}</strong></p>
+                <p className="text-xs text-stone-600 mb-3">Banco: <strong>Sicredi</strong></p>
                 <canvas ref={canvasRef} className="rounded-xl mx-auto block mb-3" />
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-emerald-400 text-emerald-700 rounded-lg px-3 py-2 text-xs hover:bg-emerald-100 transition-colors font-medium">
+                  <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-xs hover:bg-stone-100 transition-colors font-medium">
                     {copiedKey ? '✓ Chave copiada!' : '🔑 Copiar chave PIX'}
                   </button>
-                  <button onClick={copyPayload} className="inline-flex items-center justify-center gap-1.5 border border-emerald-400 text-emerald-700 rounded-lg px-3 py-2 text-xs hover:bg-emerald-100 transition-colors font-medium">
+                  <button onClick={copyPayload} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-xs hover:bg-stone-100 transition-colors font-medium">
                     {copied ? '✓ Copiado!' : '⧉ Copiar código Pix'}
                   </button>
                 </div>
@@ -578,7 +578,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               <button onClick={() => setModalOpen(false)} className="flex-1 border border-gray-200 rounded-xl py-3.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
-              <button onClick={confirmarReserva} disabled={enviando} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl py-3.5 text-base font-semibold disabled:opacity-50 transition-colors">
+              <button onClick={confirmarReserva} disabled={enviando} className="flex-1 bg-stone-800 hover:bg-stone-900 text-white rounded-xl py-3.5 text-base font-semibold disabled:opacity-50 transition-colors">
                 {enviando ? 'Reservando...' : 'Confirmar'}
               </button>
             </div>
