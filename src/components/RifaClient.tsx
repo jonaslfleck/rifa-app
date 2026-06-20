@@ -486,22 +486,22 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           <div className="bg-white border-2 border-red-200 rounded-2xl p-5 shadow-md">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Números selecionados</p>
-                <p className="font-semibold text-red-700 text-base">{selecionados.join(', ')}</p>
+                <p className="text-sm text-stone-700 font-medium mb-1">Números selecionados</p>
+                <p className="font-bold text-red-700 text-lg leading-snug">{selecionados.join(', ')}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 mb-0.5">Total</p>
-                <p className="font-bold text-red-700 text-lg">R$ {total.toFixed(2).replace('.', ',')}</p>
+                <p className="text-sm text-stone-700 font-medium mb-1">Total a pagar</p>
+                <p className="font-extrabold text-red-700 text-xl">R$ {total.toFixed(2).replace('.', ',')}</p>
               </div>
             </div>
             <div className="space-y-3 mb-4">
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Nome completo</label>
-                <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-stone-50" />
+                <label className="text-sm text-stone-800 font-semibold block mb-1.5">Nome completo</label>
+                <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Maria da Silva" className="w-full border border-stone-300 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-stone-900 placeholder:text-stone-500" />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Telefone (WhatsApp)</label>
-                <input type="text" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="(00) 00000-0000" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-stone-50" />
+                <label className="text-sm text-stone-800 font-semibold block mb-1.5">Telefone (WhatsApp)</label>
+                <input type="text" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="Ex.: (51) 99999-9999" className="w-full border border-stone-300 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-stone-900 placeholder:text-stone-500" />
               </div>
             </div>
             <div className="flex gap-2">
@@ -525,10 +525,10 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white/95 backdrop-blur border-t border-red-200 px-4 py-3">
             <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs text-gray-500">Selecionados: <strong className="text-red-700">{selecionados.length}</strong></p>
-                <p className="text-sm font-bold text-red-700">R$ {total.toFixed(2).replace('.', ',')}</p>
+                <p className="text-sm text-stone-700">Selecionados: <strong className="text-red-700">{selecionados.length}</strong></p>
+                <p className="text-base font-extrabold text-red-700">R$ {total.toFixed(2).replace('.', ',')}</p>
               </div>
-              <button onClick={abrirModal} className="bg-red-700 hover:bg-red-800 text-white rounded-xl px-4 py-2.5 text-sm font-semibold">
+              <button onClick={abrirModal} className="bg-red-700 hover:bg-red-800 text-white rounded-xl px-4 py-2.5 text-base font-semibold">
                 Reservar agora
               </button>
             </div>
@@ -553,28 +553,28 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-base font-semibold mb-1">Confirmar reserva</h2>
-            <p className="text-sm text-gray-500 mb-4">
+            <h2 className="text-lg font-bold text-stone-900 mb-2">Confirmar reserva</h2>
+            <p className="text-base text-stone-700 mb-4 leading-relaxed">
               {nome}, você está reservando {selecionados.length} número{selecionados.length > 1 ? 's' : ''}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-amber-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
             </p>
 
             {rifa.pix_key && rifa.pix_name && (
               <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mb-4 text-center">
-                <p className="text-xs font-medium text-stone-800 mb-1">Pague via Pix após reservar</p>
-                <p className="text-xs text-stone-600">{rifa.pix_type}: <strong className="text-stone-900 break-all">{rifa.pix_key}</strong></p>
-                <p className="text-xs text-stone-600">Recebedor: <strong>{rifa.pix_name}</strong></p>
-                <p className="text-xs text-stone-600 mb-3">Banco: <strong>Sicredi</strong></p>
+                <p className="text-sm font-semibold text-stone-900 mb-2">Pague via Pix após reservar</p>
+                <p className="text-sm text-stone-700">{rifa.pix_type}: <strong className="text-stone-900 break-all">{rifa.pix_key}</strong></p>
+                <p className="text-sm text-stone-700">Recebedor: <strong>{rifa.pix_name}</strong></p>
+                <p className="text-sm text-stone-700 mb-3">Banco: <strong>Sicredi</strong></p>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                  <p className="text-xs text-amber-900 font-medium">
+                  <p className="text-sm text-amber-900 font-semibold leading-relaxed">
                     Após o pagamento, envie o comprovante para confirmar seu número.
                   </p>
                 </div>
                 <canvas ref={canvasRef} className="rounded-xl mx-auto block mb-3" />
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-xs hover:bg-stone-100 transition-colors font-medium">
+                  <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-sm hover:bg-stone-100 transition-colors font-semibold">
                     {copiedKey ? '✓ Chave copiada!' : '🔑 Copiar chave PIX'}
                   </button>
-                  <button onClick={copyPayload} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-xs hover:bg-stone-100 transition-colors font-medium">
+                  <button onClick={copyPayload} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-sm hover:bg-stone-100 transition-colors font-semibold">
                     {copied ? '✓ Copiado!' : '⧉ Copiar código Pix'}
                   </button>
                 </div>
