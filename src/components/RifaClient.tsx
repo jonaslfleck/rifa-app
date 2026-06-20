@@ -377,21 +377,6 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
             </p>
           </div>
         </div>
-        <div className="grid md:grid-cols-2 gap-4 items-stretch">
-          {/* Frase destaque */}
-          <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center">
-            <p className="text-sm italic font-medium text-red-700">
-              &ldquo;Quem apoia nossos jovens, ajuda a manter viva a tradição.&rdquo;
-            </p>
-          </div>
-
-          {/* Agradecimento */}
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-center justify-center text-center">
-            <p className="text-sm font-medium text-amber-900">
-              ❤️ Desde já agradecemos o carinho, o apoio e a torcida de todos!
-            </p>
-          </div>
-        </div>
 
         {/* Selo 40 anos */}
         <div className="bg-gradient-to-r from-amber-50 to-stone-50 border border-amber-300 rounded-2xl px-5 py-4 flex items-center gap-4">
@@ -582,7 +567,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 <label className="text-sm text-stone-800 font-semibold block mb-1.5">Telefone (WhatsApp)</label>
                 <input type="tel" inputMode="numeric" value={telefone} onChange={e => setTelefone(formatBrazilPhone(e.target.value))} maxLength={16} placeholder="Ex.: (51) 99999-9999" className={`w-full border rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 bg-white text-stone-900 placeholder:text-stone-500 ${telefoneDigitado && !telefoneValido ? 'border-red-400 focus:ring-red-300' : 'border-stone-300 focus:ring-amber-400'}`} />
                 {telefoneDigitado && !telefoneValido && (
-                  <p className="mt-1.5 text-sm text-red-700 font-medium">Telefone inválido. Use DDD + número, ex.: (51) 99999-9999.</p>
+                  <p className="mt-1.5 text-sm text-red-700 font-medium">Telefone inválido. Use DD + número, ex.: (51) 99999-9999.</p>
                 )}
               </div>
             </div>
@@ -619,10 +604,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
         {/* Seção final */}
         <div className="bg-gradient-to-br from-red-50 to-amber-100 border border-amber-200 rounded-2xl px-5 py-7 text-center">
-          <p className="text-sm sm:text-base italic font-semibold text-red-700 mb-2 leading-snug">
-            &ldquo;Quem apoia nossos jovens, ajuda a manter viva a tradição.&rdquo;
-          </p>
-          <p className="text-xs text-stone-600 mt-2">DTG Camboatá — Juvenart 2026</p>
+          <p className="text-xs text-stone-600">DTG Camboatá — Juvenart 2026</p>
         </div>
 
         {/* Rodapé */}
