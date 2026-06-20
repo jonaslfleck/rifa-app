@@ -8,7 +8,6 @@ import { buildPixPayload, normalizePixKey } from '@/lib/pix'
 import type { Rifa } from '@/lib/types'
 import logoCamboata from '@/assets/logo-camboata-header-ofc.png'
 import logoAtiradores from '@/assets/logo-atiradores-header.png'
-import CampaignProgress from './CampaignProgress'
 
 interface NumeroStatus { numero: number; status: 'reservado' | 'pago' }
 interface Props { rifa: Rifa | null; reservas: NumeroStatus[] }
@@ -248,9 +247,10 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white px-4 pt-9 pb-8">
+      <div className="bg-gradient-to-br from-stone-800 to-stone-950 text-white px-4 pt-7 pb-8">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between gap-4 mb-4">
+          <p className="text-amber-400 text-xs font-bold tracking-widest uppercase mb-4">🍀 DTG Camboatá</p>
+          <div className="flex items-center justify-between gap-4 mb-5">
             <Image
               src={logoCamboata}
               alt="Logo DTG Camboata"
@@ -264,23 +264,22 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               priority
             />
           </div>
-          <p className="text-emerald-300 text-sm font-semibold tracking-widest uppercase mb-3">🍀 DTG Camboatá</p>
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight bg-white/10 border border-emerald-400/30 rounded-2xl px-4 py-3">
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight bg-white/10 border border-stone-500/30 rounded-2xl px-4 py-3">
             {rifa.title}
           </h1>
           <div className="grid grid-cols-2 sm:flex sm:gap-6 gap-3 mt-5">
             <div>
-              <p className="text-emerald-400 text-xs">Valor por número</p>
+              <p className="text-stone-400 text-xs">Valor por número</p>
               <p className="text-white font-bold text-xl">R$ {rifa.price.toFixed(2).replace('.', ',')}</p>
             </div>
             {rifa.draw_date && (
               <div>
-                <p className="text-emerald-400 text-xs">Data do sorteio</p>
+                <p className="text-stone-400 text-xs">Data do sorteio</p>
                 <p className="text-white font-bold text-xl">{fmtDate(rifa.draw_date)}</p>
               </div>
             )}
             <div>
-              <p className="text-emerald-400 text-xs">Disponíveis</p>
+              <p className="text-stone-400 text-xs">Disponíveis</p>
               <p className="text-white font-bold text-xl">{disponiveis} de {nums.length}</p>
             </div>
           </div>
@@ -298,7 +297,6 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         {/* Missão — Juvenart 2026 */}
         <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl px-5 py-6 text-white">
           <div className="flex items-start gap-4">
-            <span className="text-3xl shrink-0">🤠</span>
             <div>
               <h2 className="text-base sm:text-lg font-bold leading-snug mb-2">
                 Ajude nossa Invernada Juvenil a representar o DTG Camboatá no Juvenart 2026!
@@ -348,9 +346,6 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
             <p className="text-xs italic text-stone-500 mt-1">&ldquo;Em qualquer chão, nossas raízes brotarão&rdquo;</p>
           </div>
         </div>
-
-        {/* Barra de progresso */}
-        <CampaignProgress meta={10000} arrecadado={0} titulo="Meta Juvenart 2026" />
 
         {/* Agradecimento */}
         <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-center">
@@ -540,7 +535,6 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
         {/* Seção final */}
         <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl px-5 py-7 text-center">
-          <p className="text-3xl mb-3">🤠</p>
           <p className="text-sm sm:text-base italic font-semibold text-amber-400 mb-2 leading-snug">
             &ldquo;Quem apoia nossos jovens, ajuda a manter viva a tradição.&rdquo;
           </p>
