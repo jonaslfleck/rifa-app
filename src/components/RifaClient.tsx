@@ -412,7 +412,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               <span className="text-2xl">🔎</span>
               <div className="text-left">
                 <p className="font-medium text-gray-900 text-sm">Ver meus números</p>
-                <p className="text-xs text-gray-400">Consulte pelo seu telefone</p>
+                <p className="text-xs text-gray-400">Consulte os números comprados informando seu celular</p>
               </div>
             </div>
             <span className={`text-gray-400 transition-transform ${showConsulta ? 'rotate-180' : ''}`}>▾</span>
@@ -571,6 +571,11 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 )}
               </div>
             </div>
+            {alerta && (
+              <div className={`rounded-xl px-4 py-3 text-sm mb-3 ${alerta.tipo === 'ok' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {alerta.msg}
+              </div>
+            )}
             <div className="flex gap-2">
               <button onClick={abrirModal} className="flex-1 bg-red-700 hover:bg-red-800 active:scale-[0.99] text-white rounded-xl py-3.5 text-base font-semibold transition-all">
                 Reservar {selecionados.length} número{selecionados.length > 1 ? 's' : ''}
@@ -579,12 +584,6 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 Limpar
               </button>
             </div>
-          </div>
-        )}
-
-        {alerta && (
-          <div className={`rounded-xl px-4 py-3 text-sm ${alerta.tipo === 'ok' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {alerta.msg}
           </div>
         )}
 
