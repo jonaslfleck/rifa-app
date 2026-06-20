@@ -286,7 +286,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <div className={`max-w-2xl mx-auto px-4 py-6 space-y-5 ${selecionados.length > 0 ? 'pb-24 sm:pb-6' : ''}`}>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
             <p className="text-sm font-semibold text-amber-900">⏳ Aviso importante</p>
@@ -441,16 +441,24 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           </div>
         )}
 
-        {/* Legenda */}
-        <div className="flex gap-4 flex-wrap text-xs text-gray-400">
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-white inline-block"></span>Disponível</span>
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border-2 border-amber-500 bg-amber-50 inline-block"></span>Selecionado</span>
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-amber-300 bg-amber-50 inline-block"></span>Reservado</span>
-          <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-gray-100 inline-block"></span>Pago</span>
-        </div>
+        {/* Área principal: Números da rifa */}
+        <div className="bg-white border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h3 className="text-base sm:text-lg font-bold text-red-700">Escolha seus números</h3>
+            <span className="text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2.5 py-1">
+              {disponiveis} disponíveis
+            </span>
+          </div>
 
-        {/* Grid de números */}
-        <div>
+          {/* Legenda */}
+          <div className="flex gap-4 flex-wrap text-xs text-gray-500 mb-4">
+            <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-white inline-block"></span>Disponível</span>
+            <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border-2 border-amber-500 bg-amber-50 inline-block"></span>Selecionado</span>
+            <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-amber-300 bg-amber-50 inline-block"></span>Reservado</span>
+            <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-gray-100 inline-block"></span>Pago</span>
+          </div>
+
+          {/* Grid de números */}
           <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))' }}>
             {nums.map(n => {
               const st = statusMap[n]
@@ -475,15 +483,15 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
         {/* Barra de seleção */}
         {selecionados.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border-2 border-red-200 rounded-2xl p-5 shadow-md">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Números selecionados</p>
-                <p className="font-semibold text-amber-700 text-base">{selecionados.join(', ')}</p>
+                <p className="font-semibold text-red-700 text-base">{selecionados.join(', ')}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-400 mb-0.5">Total</p>
-                <p className="font-semibold text-gray-900">R$ {total.toFixed(2).replace('.', ',')}</p>
+                <p className="font-bold text-red-700 text-lg">R$ {total.toFixed(2).replace('.', ',')}</p>
               </div>
             </div>
             <div className="space-y-3 mb-4">
@@ -510,6 +518,20 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         {alerta && (
           <div className={`rounded-xl px-4 py-3 text-sm ${alerta.tipo === 'ok' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
             {alerta.msg}
+          </div>
+        )}
+
+        {selecionados.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white/95 backdrop-blur border-t border-red-200 px-4 py-3">
+            <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-gray-500">Selecionados: <strong className="text-red-700">{selecionados.length}</strong></p>
+                <p className="text-sm font-bold text-red-700">R$ {total.toFixed(2).replace('.', ',')}</p>
+              </div>
+              <button onClick={abrirModal} className="bg-red-700 hover:bg-red-800 text-white rounded-xl px-4 py-2.5 text-sm font-semibold">
+                Reservar agora
+              </button>
+            </div>
           </div>
         )}
 
