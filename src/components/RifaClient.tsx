@@ -1,10 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import QRCode from 'qrcode'
 import { createClient } from '@/lib/supabase/client'
 import { buildPixPayload, normalizePixKey } from '@/lib/pix'
 import type { Rifa } from '@/lib/types'
+import logoCamboata from '@/assets/logo-camboata-header-ofc.png'
+import logoAtiradores from '@/assets/logo-atiradores-header.png'
+import CampaignProgress from './CampaignProgress'
 
 interface NumeroStatus { numero: number; status: 'reservado' | 'pago' }
 interface Props { rifa: Rifa | null; reservas: NumeroStatus[] }
@@ -246,6 +250,20 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       {/* Header */}
       <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white px-4 pt-9 pb-8">
         <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <Image
+              src={logoCamboata}
+              alt="Logo DTG Camboata"
+              className="h-14 sm:h-16 w-auto object-contain"
+              priority
+            />
+            <Image
+              src={logoAtiradores}
+              alt="Logo Atiradores"
+              className="h-12 sm:h-14 w-auto object-contain"
+              priority
+            />
+          </div>
           <p className="text-emerald-300 text-sm font-semibold tracking-widest uppercase mb-3">🍀 DTG Camboatá</p>
           <h1 className="text-2xl sm:text-3xl font-bold leading-tight bg-white/10 border border-emerald-400/30 rounded-2xl px-4 py-3">
             {rifa.title}
@@ -270,13 +288,83 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+          <p className="text-sm font-semibold text-amber-900">⏳ Aviso importante</p>
+          <p className="text-sm text-amber-800 mt-1">
+            Números reservados permanecem aguardando pagamento por até 24 horas. Após esse prazo, os números voltam a ficar disponíveis para venda.
+          </p>
+        </div>
 
-        {/* Card campanha Juvenart 2026 */}
+        {/* Missão — Juvenart 2026 */}
+        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl px-5 py-6 text-white">
+          <div className="flex items-start gap-4">
+            <span className="text-3xl shrink-0">🤠</span>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold leading-snug mb-2">
+                Ajude nossa Invernada Juvenil a representar o DTG Camboatá no Juvenart 2026!
+              </h2>
+              <p className="text-emerald-200 text-sm leading-relaxed">
+                Cada número vendido ajuda a custear transporte, alimentação, hospedagem e despesas necessárias para que nossos jovens possam levar a tradição gaúcha adiante.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Contribuição */}
+        <div>
+          <p className="text-sm font-semibold text-stone-600 mb-3">Sua contribuição ajuda em:</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { icon: '🚌', label: 'Transporte' },
+              { icon: '🍽️', label: 'Alimentação' },
+              { icon: '🏨', label: 'Hospedagem' },
+              { icon: '👘', label: 'Figurinos e manutenção das pilchas' },
+              { icon: '🎪', label: 'Despesas do evento' },
+            ].map(item => (
+              <div key={item.label} className="bg-white border border-amber-200 rounded-xl p-3 flex items-center gap-2 shadow-sm">
+                <span className="text-xl shrink-0">{item.icon}</span>
+                <span className="text-xs font-medium text-stone-700 leading-tight">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Frase destaque */}
+        <div className="border-l-4 border-red-600 pl-4 py-1">
+          <p className="text-sm italic font-medium text-red-700">
+            &ldquo;Quem apoia nossos jovens, ajuda a manter viva a tradição.&rdquo;
+          </p>
+        </div>
+
+        {/* Selo 40 anos */}
+        <div className="bg-gradient-to-r from-amber-50 to-stone-50 border border-amber-300 rounded-2xl px-5 py-4 flex items-center gap-4">
+          <div className="bg-gradient-to-br from-amber-500 to-yellow-600 text-white rounded-full w-16 h-16 flex flex-col items-center justify-center shrink-0 shadow-md">
+            <p className="text-xl font-extrabold leading-none">40</p>
+            <p className="text-xs font-semibold leading-none">anos</p>
+          </div>
+          <div>
+            <p className="text-xs text-amber-600 font-bold tracking-widest uppercase mb-0.5">1986 • 2026</p>
+            <p className="text-base font-bold text-stone-800 leading-tight">40 anos do DTG Camboatá</p>
+            <p className="text-xs italic text-stone-500 mt-1">&ldquo;Em qualquer chão, nossas raízes brotarão&rdquo;</p>
+          </div>
+        </div>
+
+        {/* Barra de progresso */}
+        <CampaignProgress meta={10000} arrecadado={0} titulo="Meta Juvenart 2026" />
+
+        {/* Agradecimento */}
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-center">
+          <p className="text-sm font-medium text-red-800">
+            ❤️ Desde já agradecemos o carinho, o apoio e a torcida de todos!
+          </p>
+        </div>
+
+        {/* Descrição dinâmica (admin) */}
         {rifa.description && (
           <div className="bg-gradient-to-r from-amber-50 to-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-start gap-3">
             <span className="text-2xl shrink-0">🌟</span>
             <div>
-              <p className="text-sm font-semibold text-emerald-900">Campanha Juvenart 2026</p>
+              <p className="text-sm font-semibold text-emerald-900">Informações adicionais</p>
               <p className="text-sm text-emerald-800 mt-0.5">{rifa.description}</p>
             </div>
           </div>
@@ -449,6 +537,15 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
             {alerta.msg}
           </div>
         )}
+
+        {/* Seção final */}
+        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl px-5 py-7 text-center">
+          <p className="text-3xl mb-3">🤠</p>
+          <p className="text-sm sm:text-base italic font-semibold text-amber-400 mb-2 leading-snug">
+            &ldquo;Quem apoia nossos jovens, ajuda a manter viva a tradição.&rdquo;
+          </p>
+          <p className="text-xs text-emerald-400 mt-2">DTG Camboatá — Juvenart 2026</p>
+        </div>
 
         {/* Rodapé */}
         <div className="text-center py-4">
