@@ -127,6 +127,53 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const disponiveis = nums.filter(n => !statusMap[n]).length
   const reservados = reservas.filter(r => r.status === 'reservado').length
   const pagos = reservas.filter(r => r.status === 'pago').length
+  const selectionStorageKey = `rifa:selected:${rifa.id}`
+
+  // Restaura seleção ao carregar/recarregar e filtra números inválidos/ocupados.
+  useEffect(() => {
+    const raw = localStorage.getItem(selectionStorageKey)
+    if (!raw) {
+      setSelecionados([])
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as number[]
+      if (!Array.isArray(parsed)) {
+        setSelecionados([])
+        return
+      }
+
+      const allowed = new Set(nums)
+      const restored = parsed
+        .filter(n => Number.isInteger(n) && allowed.has(n) && !statusMap[n])
+        .sort((a, b) => a - b)
+
+      setSelecionados(restored)
+    } catch {
+      setSelecionados([])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectionStorageKey])
+
+  // Mantém localStorage sincronizado e remove números que ficarem ocupados.
+  useEffect(() => {
+    const filtered = selecionados
+      .filter(n => !statusMap[n])
+      .sort((a, b) => a - b)
+
+    if (filtered.length !== selecionados.length) {
+      setSelecionados(filtered)
+      return
+    }
+
+    if (filtered.length === 0) {
+      localStorage.removeItem(selectionStorageKey)
+      return
+    }
+
+    localStorage.setItem(selectionStorageKey, JSON.stringify(filtered))
+  }, [selecionados, statusMap, selectionStorageKey])
 
   function onlyDigits(value: string) {
     return value.replace(/\D/g, '')
