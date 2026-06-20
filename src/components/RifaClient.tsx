@@ -128,12 +128,33 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const reservados = reservas.filter(r => r.status === 'reservado').length
   const pagos = reservas.filter(r => r.status === 'pago').length
 
+  function onlyDigits(value: string) {
+    return value.replace(/\D/g, '')
+  }
+
+  function formatBrazilPhone(value: string) {
+    const d = onlyDigits(value).slice(0, 11)
+    if (d.length <= 2) return d
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  }
+
+  function isValidBrazilPhone(value: string) {
+    const d = onlyDigits(value)
+    return /^[1-9]{2}(?:9\d{8}|\d{8})$/.test(d)
+  }
+
   function toggleNum(n: number) {
     setSelecionados(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n].sort((a, b) => a - b))
   }
 
   function abrirModal() {
     if (!nome.trim() || !telefone.trim()) { setAlerta({ tipo: 'err', msg: 'Preencha nome e telefone.' }); return }
+    if (!isValidBrazilPhone(telefone)) {
+      setAlerta({ tipo: 'err', msg: 'Informe um telefone válido no formato brasileiro, com DDD. Ex.: (51) 99999-9999.' })
+      return
+    }
     const ocupados = selecionados.filter(n => statusMap[n])
     if (ocupados.length > 0) {
       setAlerta({ tipo: 'err', msg: `Número(s) ${ocupados.join(', ')} já reservados. Remova-os.` })
@@ -160,7 +181,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         rifa_id: rifa.id,
         numero,
         nome: nome.trim(),
-        telefone: telefone.replace(/\D/g, ''),
+        telefone: onlyDigits(telefone),
         status: 'reservado'
       }))
     )
@@ -198,7 +219,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       body: JSON.stringify({
         rifaId: rifa.id,
         nome: nome.trim(),
-        telefone: telefone.replace(/\D/g, ''),
+        telefone: onlyDigits(telefone),
         numeros: selecionados,
       }),
     }).catch(() => {})
@@ -501,7 +522,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               </div>
               <div>
                 <label className="text-sm text-stone-800 font-semibold block mb-1.5">Telefone (WhatsApp)</label>
-                <input type="text" value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="Ex.: (51) 99999-9999" className="w-full border border-stone-300 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-stone-900 placeholder:text-stone-500" />
+                <input type="tel" inputMode="numeric" value={telefone} onChange={e => setTelefone(formatBrazilPhone(e.target.value))} maxLength={16} placeholder="Ex.: (51) 99999-9999" className="w-full border border-stone-300 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-stone-900 placeholder:text-stone-500" />
               </div>
             </div>
             <div className="flex gap-2">
@@ -551,8 +572,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-stone-900 mb-2">Confirmar reserva</h2>
             <p className="text-base text-stone-700 mb-4 leading-relaxed">
               {nome}, você está reservando {selecionados.length} número{selecionados.length > 1 ? 's' : ''}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-amber-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
@@ -581,7 +602,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={() => setModalOpen(false)} className="flex-1 border border-gray-200 rounded-xl py-3.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
