@@ -602,14 +602,9 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           </div>
         )}
 
-        {/* Seção final */}
-        <div className="bg-gradient-to-br from-red-50 to-amber-100 border border-amber-200 rounded-2xl px-5 py-7 text-center">
-          <p className="text-xs text-stone-600">DTG Camboatá — Juvenart 2026</p>
-        </div>
-
         {/* Rodapé */}
         <div className="text-center py-4">
-          <p className="text-sm font-semibold text-red-700">🍀 Boa sorte e obrigado por apoiar nossa juventude!</p>
+          <p className="text-sm font-bold text-red-700">DTG Camboatá — Juvenart 2026 🍀 Boa sorte e obrigado por apoiar nossa juventude!</p>
         </div>
       </div>
 
