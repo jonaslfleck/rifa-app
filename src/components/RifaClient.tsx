@@ -632,7 +632,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 <p className="text-sm text-stone-700 mb-3">Banco: <strong>Sicredi</strong></p>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
                   <p className="text-sm text-amber-900 font-semibold leading-relaxed">
-                    Após o pagamento, envie o comprovante para confirmar seu número.
+                    Confirme a sua reserva e após o pagamento, envie o comprovante via Whatsapp para confirmar seu número.
                   </p>
                 </div>
                 <canvas ref={canvasRef} className="rounded-xl mx-auto block mb-3" />
