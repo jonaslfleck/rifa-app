@@ -114,6 +114,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const payloadRef = useRef('')
   const reservaSectionRef = useRef<HTMLDivElement>(null)
+  const nomeInputRef = useRef<HTMLInputElement>(null)
+  const telefoneInputRef = useRef<HTMLInputElement>(null)
 
   // Atualiza a grade de ocupados via RPC (sem expor nome/telefone).
   async function refreshOcupados() {
@@ -146,10 +148,10 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
   const nums = buildAllowedNumbers(rifa)
   const statusMap = Object.fromEntries(reservas.map(r => [r.numero, r.status]))
+  const visiveisNaGrade = nums.filter(n => statusMap[n] !== 'pago')
   const total = rifa.price * selecionados.length
-  const disponiveis = nums.filter(n => !statusMap[n]).length
-  const reservados = reservas.filter(r => r.status === 'reservado').length
-  const pagos = reservas.filter(r => r.status === 'pago').length
+  const disponiveis = visiveisNaGrade.filter(n => !statusMap[n]).length
+  const totalSelecionavel = visiveisNaGrade.length
   const selectionStorageKey = `rifa:selected:${rifa.id}`
 
   // Restaura seleção ao carregar/recarregar e filtra números inválidos/ocupados.
@@ -222,12 +224,31 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     reservaSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  function focarNome() {
+    irParaReserva()
+    requestAnimationFrame(() => nomeInputRef.current?.focus())
+  }
+
+  function focarTelefone() {
+    irParaReserva()
+    requestAnimationFrame(() => telefoneInputRef.current?.focus())
+  }
+
   function toggleNum(n: number) {
     setSelecionados(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n].sort((a, b) => a - b))
   }
 
   function abrirModal() {
-    if (!nome.trim() || !telefone.trim()) { setAlerta({ tipo: 'err', msg: 'Preencha nome e telefone.' }); return }
+    if (!nome.trim()) {
+      setAlerta({ tipo: 'err', msg: 'Preencha seu nome para continuar.' })
+      focarNome()
+      return
+    }
+    if (!telefone.trim()) {
+      setAlerta({ tipo: 'err', msg: 'Preencha seu telefone para continuar.' })
+      focarTelefone()
+      return
+    }
     const ocupados = selecionados.filter(n => statusMap[n])
     if (ocupados.length > 0) {
       setAlerta({ tipo: 'err', msg: `Número(s) ${ocupados.join(', ')} já reservados. Remova-os.` })
@@ -367,7 +388,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               )}
               <div>
                 <p className="text-amber-100 text-xs">Disponíveis</p>
-                <p className="text-white font-bold text-base min-[380px]:text-lg sm:text-xl">{disponiveis} de {nums.length}</p>
+                <p className="text-white font-bold text-base min-[380px]:text-lg sm:text-xl">{disponiveis} de {totalSelecionavel}</p>
               </div>
             </div>
             <Image
@@ -541,19 +562,13 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
             <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-white inline-block"></span>Disponível</span>
             <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border-2 border-amber-500 bg-amber-50 inline-block"></span>Selecionado</span>
             <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-amber-300 bg-amber-50 inline-block"></span>Reservado</span>
-            <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-gray-100 inline-block"></span>Pago</span>
           </div>
 
           {/* Grid de números */}
           <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))' }}>
-            {nums.map(n => {
+            {visiveisNaGrade.map(n => {
               const st = statusMap[n]
               const sel = selecionados.includes(n)
-              if (st === 'pago') return (
-                <div key={n} className="h-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-base text-gray-300 line-through cursor-not-allowed select-none">
-                  {n}
-                </div>
-              )
               let cls = 'h-14 rounded-xl border text-base font-semibold transition-all select-none '
               if (st === 'reservado') cls += 'bg-amber-50 border-amber-200 text-amber-600 cursor-not-allowed'
               else if (sel) cls += 'bg-amber-50 border-2 border-amber-500 text-amber-800 shadow-sm'
@@ -583,11 +598,11 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
             <div className="space-y-3 mb-4">
               <div>
                 <label className="text-sm text-stone-800 font-semibold block mb-1.5">Nome completo</label>
-                <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Maria da Silva" className="w-full border border-stone-300 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-stone-900 placeholder:text-stone-500" />
+                <input ref={nomeInputRef} type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Maria da Silva" autoComplete="name" className="w-full border border-stone-300 rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-stone-900 placeholder:text-stone-500" />
               </div>
               <div>
                 <label className="text-sm text-stone-800 font-semibold block mb-1.5">Telefone (WhatsApp)</label>
-                <input type="tel" inputMode="numeric" value={telefone} onChange={e => setTelefone(formatBrazilPhone(e.target.value))} maxLength={16} placeholder="Ex.: (51) 99999-9999" className={`w-full border rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 bg-white text-stone-900 placeholder:text-stone-500 ${telefoneDigitado && !telefoneValido ? 'border-red-400 focus:ring-red-300' : 'border-stone-300 focus:ring-amber-400'}`} />
+                <input ref={telefoneInputRef} type="tel" inputMode="numeric" autoComplete="tel" value={telefone} onChange={e => setTelefone(formatBrazilPhone(e.target.value))} maxLength={16} placeholder="Ex.: (51) 99999-9999" className={`w-full border rounded-xl px-3.5 py-3 text-base focus:outline-none focus:ring-2 bg-white text-stone-900 placeholder:text-stone-500 ${telefoneDigitado && !telefoneValido ? 'border-red-400 focus:ring-red-300' : 'border-stone-300 focus:ring-amber-400'}`} />
                 {telefoneDigitado && !telefoneValido && (
                   <p className="mt-1.5 text-sm text-red-700 font-medium">Telefone inválido. Use DD + número, ex.: (51) 99999-9999.</p>
                 )}
