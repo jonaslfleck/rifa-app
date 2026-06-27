@@ -9,7 +9,7 @@ export default async function RifaPage() {
   // Não seleciona admin_emails: a chave anon é pública.
   const { data: rifa } = await supabase
     .from('rifas')
-    .select('id, title, description, total_numbers, start_number, price, draw_date, pix_type, pix_key, pix_name, pix_city, prizes, created_at')
+    .select('id, title, description, total_numbers, start_number, number_ranges, price, draw_date, pix_type, pix_key, pix_name, pix_city, prizes, created_at')
     .order('created_at', { ascending: false })
     .limit(1)
     .single()

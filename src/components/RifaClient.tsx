@@ -12,6 +12,28 @@ import logoAtiradores from '@/assets/logo-atiradores-header.png'
 interface NumeroStatus { numero: number; status: 'reservado' | 'pago' }
 interface Props { rifa: Rifa | null; reservas: NumeroStatus[] }
 
+function buildAllowedNumbers(rifa: Rifa): number[] {
+  const ranges = Array.isArray(rifa.number_ranges)
+    ? rifa.number_ranges
+        .map(r => ({
+          start: Number(r?.start),
+          end: Number(r?.end),
+        }))
+        .filter(r => Number.isInteger(r.start) && Number.isInteger(r.end) && r.start > 0 && r.end >= r.start)
+        .sort((a, b) => a.start - b.start)
+    : []
+
+  if (ranges.length === 0) {
+    return Array.from({ length: rifa.total_numbers }, (_, i) => rifa.start_number + i)
+  }
+
+  const out: number[] = []
+  for (const range of ranges) {
+    for (let n = range.start; n <= range.end; n += 1) out.push(n)
+  }
+  return out
+}
+
 const PRIZES = [
   { n:1,  icon:'🔪', label:'Faca do Camboatá' },
   { n:2,  icon:'👜', label:'Bolsa de couro masculina' },
@@ -122,7 +144,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     <div className="flex items-center justify-center min-h-screen text-gray-400">Rifa não configurada.</div>
   )
 
-  const nums = Array.from({ length: rifa.total_numbers }, (_, i) => rifa.start_number + i)
+  const nums = buildAllowedNumbers(rifa)
   const statusMap = Object.fromEntries(reservas.map(r => [r.numero, r.status]))
   const total = rifa.price * selecionados.length
   const disponiveis = nums.filter(n => !statusMap[n]).length

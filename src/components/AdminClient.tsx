@@ -2,10 +2,45 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Rifa, Reserva } from '@/lib/types'
+import type { NumberRange, Rifa, Reserva } from '@/lib/types'
 import type { User } from '@supabase/supabase-js'
 
 interface Props { rifa: Rifa; reservas: Reserva[]; user: User }
+
+function normalizeRanges(ranges: NumberRange[]): NumberRange[] {
+  const parsed = ranges
+    .map(r => ({
+      start: Number(r.start),
+      end: Number(r.end),
+    }))
+    .filter(r => Number.isInteger(r.start) && Number.isInteger(r.end) && r.start > 0 && r.end >= r.start)
+    .sort((a, b) => a.start - b.start)
+
+  const merged: NumberRange[] = []
+  for (const range of parsed) {
+    const last = merged.at(-1)
+    if (!last || range.start > last.end + 1) {
+      merged.push(range)
+      continue
+    }
+    last.end = Math.max(last.end, range.end)
+  }
+  return merged
+}
+
+function getRanges(rifa: Rifa): NumberRange[] {
+  const fromDb = Array.isArray(rifa.number_ranges) ? normalizeRanges(rifa.number_ranges) : []
+  if (fromDb.length > 0) return fromDb
+
+  return [{
+    start: rifa.start_number,
+    end: rifa.start_number + rifa.total_numbers - 1,
+  }]
+}
+
+function countNumbers(ranges: NumberRange[]): number {
+  return ranges.reduce((acc, range) => acc + (range.end - range.start + 1), 0)
+}
 
 export default function AdminClient({ rifa: initialRifa, reservas: initialReservas, user }: Props) {
   const supabase = createClient()
@@ -14,8 +49,8 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
   const [reservas, setReservas] = useState(initialReservas)
   const [saving, setSaving] = useState(false)
   const [cfgAlert, setCfgAlert] = useState<{ tipo: 'ok' | 'err'; msg: string } | null>(null)
+  const [addStartInput, setAddStartInput] = useState('')
   const [addQty, setAddQty] = useState(10)
-  const [addStart, setAddStart] = useState(initialRifa.start_number + initialRifa.total_numbers)
   const [addAlert, setAddAlert] = useState<{ tipo: 'ok' | 'err'; msg: string } | null>(null)
   const [addSaving, setAddSaving] = useState(false)
 
@@ -61,20 +96,42 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
   }
 
   async function addNumeros() {
-    const novoTotal = addStart - rifa.start_number + addQty
+    const inicioFaixa = Number.parseInt(addStartInput, 10)
+    if (!Number.isInteger(inicioFaixa) || inicioFaixa <= 0) {
+      setAddAlert({ tipo: 'err', msg: 'Informe o início da nova faixa.' })
+      return
+    }
+
+    const fimFaixa = inicioFaixa + addQty - 1
+    const novaFaixa: NumberRange = { start: inicioFaixa, end: fimFaixa }
+
+    const rangesAtuais = getRanges(rifa)
+    const rangesAtualizadas = normalizeRanges([...rangesAtuais, novaFaixa])
+    const novoInicio = rangesAtualizadas[0].start
+    const novoFim = rangesAtualizadas.at(-1)?.end ?? rangesAtualizadas[0].end
+    const novoTotal = novoFim - novoInicio + 1
+
     setAddSaving(true)
     const res = await fetch('/api/rifa', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rifaId: rifa.id, total_numbers: novoTotal }),
+      body: JSON.stringify({ rifaId: rifa.id, append_range: novaFaixa }),
     })
     setAddSaving(false)
-    if (!res.ok) { setAddAlert({ tipo: 'err', msg: 'Erro ao adicionar números.' }); return }
-    const novoFim = rifa.start_number + novoTotal - 1
-    setRifa(prev => ({ ...prev, total_numbers: novoTotal }))
-    setForm(prev => ({ ...prev, total_numbers: novoTotal }))
-    setAddStart(novoFim + 1)
-    setAddAlert({ tipo: 'ok', msg: `${addQty} números adicionados! Agora vai até ${novoFim}.` })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      setAddAlert({ tipo: 'err', msg: data?.error ?? 'Erro ao adicionar números.' })
+      return
+    }
+    setRifa(prev => ({
+      ...prev,
+      number_ranges: rangesAtualizadas,
+      start_number: novoInicio,
+      total_numbers: novoTotal,
+    }))
+    setForm(prev => ({ ...prev, start_number: novoInicio, total_numbers: novoTotal }))
+    setAddStartInput('')
+    setAddAlert({ tipo: 'ok', msg: `Faixa ${inicioFaixa}–${fimFaixa} adicionada com sucesso!` })
     setTimeout(() => setAddAlert(null), 3000)
   }
 
@@ -107,8 +164,18 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
 
   const pending = reservas.filter(r => r.status === 'reservado')
   const paid = reservas.filter(r => r.status === 'pago')
-  const fimAtual = rifa.start_number + rifa.total_numbers - 1
-  const fimNovo = addStart + addQty - 1
+  const rangesAtuais = getRanges(rifa)
+  const inicioAtual = rangesAtuais[0].start
+  const fimAtual = rangesAtuais.at(-1)?.end ?? rangesAtuais[0].end
+  const totalAtivo = countNumbers(rangesAtuais)
+  const addStart = Number.parseInt(addStartInput, 10)
+  const hasAddStart = Number.isInteger(addStart) && addStart > 0
+  const fimNovo = hasAddStart ? addStart + addQty - 1 : null
+  const qtySuffix = addQty > 1 ? 's' : ''
+  let addButtonLabel = 'Adicionar números'
+  if (hasAddStart && fimNovo !== null) {
+    addButtonLabel = `Adicionar ${addQty} número${qtySuffix} (${addStart}–${fimNovo})`
+  }
   const paidGroups = paid.reduce<Record<string, Reserva[]>>((acc, r) => {
     const key = (r.telefone ?? '').replace(/\D/g, '') || r.id
     ;(acc[key] ??= []).push(r)
@@ -207,29 +274,42 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white border border-gray-200 rounded-2xl p-4 text-center">
-                <p className="text-xs text-gray-400 mb-1">Início</p>
-                <p className="text-xl font-semibold text-gray-800">{rifa.start_number}</p>
+                <p className="text-xs text-gray-400 mb-1">Menor número</p>
+                <p className="text-xl font-semibold text-gray-800">{inicioAtual}</p>
               </div>
               <div className="bg-white border border-gray-200 rounded-2xl p-4 text-center">
-                <p className="text-xs text-gray-400 mb-1">Fim atual</p>
+                <p className="text-xs text-gray-400 mb-1">Maior número</p>
                 <p className="text-xl font-semibold text-gray-800">{fimAtual}</p>
               </div>
               <div className="bg-white border border-gray-200 rounded-2xl p-4 text-center">
-                <p className="text-xs text-gray-400 mb-1">Total atual</p>
-                <p className="text-xl font-semibold text-emerald-700">{rifa.total_numbers}</p>
+                <p className="text-xs text-gray-400 mb-1">Total ativo</p>
+                <p className="text-xl font-semibold text-emerald-700">{totalAtivo}</p>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-2xl p-4">
+              <p className="text-xs text-gray-500 mb-2">Faixas atuais</p>
+              <div className="flex flex-wrap gap-2">
+                {rangesAtuais.map((range, i) => (
+                  <span key={`${range.start}-${range.end}-${i}`} className="bg-stone-100 text-stone-700 border border-stone-200 text-xs px-2.5 py-1 rounded-full font-medium">
+                    {range.start}–{range.end}
+                  </span>
+                ))}
               </div>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-2xl p-5">
               <p className="text-sm font-medium text-gray-800 mb-1">Liberar mais números para venda</p>
-              <p className="text-xs text-gray-400 mb-4">Informe o início da nova faixa e a quantidade de números a adicionar.</p>
+              <p className="text-xs text-gray-400 mb-4">Informe início e quantidade. A nova faixa será adicionada sem obrigar sequência com as anteriores.</p>
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
                   <label className={lbl}>Início da nova faixa</label>
                   <input
-                    type="number" min={rifa.start_number + 1}
-                    value={addStart}
-                    onChange={e => setAddStart(Math.max(rifa.start_number + 1, parseInt(e.target.value) || rifa.start_number + 1))}
+                    type="number"
+                    min={1}
+                    placeholder="0"
+                    value={addStartInput}
+                    onChange={e => setAddStartInput(e.target.value)}
                     className={inp}
                   />
                 </div>
@@ -238,7 +318,7 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
                   <input
                     type="number" min={1} max={1000}
                     value={addQty}
-                    onChange={e => setAddQty(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={e => setAddQty(Math.min(1000, Math.max(1, Number.parseInt(e.target.value, 10) || 1)))}
                     className={inp}
                   />
                 </div>
@@ -246,11 +326,18 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
               <div className="bg-stone-50 border border-gray-100 rounded-xl px-4 py-3 mb-4">
                 <p className="text-xs text-gray-400">Nova faixa a adicionar:</p>
                 <p className="text-sm font-medium text-gray-800 mt-0.5">
-                  Números <span className="text-emerald-700">{addStart}</span> até <span className="text-emerald-700">{fimNovo}</span> — <span className="text-emerald-700">{addQty}</span> número{addQty > 1 ? 's' : ''}
+                  {hasAddStart && fimNovo !== null ? (
+                    <>Números <span className="text-emerald-700">{addStart}</span> até <span className="text-emerald-700">{fimNovo}</span> — <span className="text-emerald-700">{addQty}</span> número{addQty > 1 ? 's' : ''}</>
+                  ) : (
+                    <>Informe o início para calcular a faixa.</>
+                  )}
                 </p>
+                {hasAddStart && (
+                  <p className="text-xs text-gray-500 mt-2">Somente essa faixa será incluída. Faixas anteriores permanecem como estão.</p>
+                )}
               </div>
-              <button onClick={addNumeros} disabled={addSaving} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50 transition-colors">
-                {addSaving ? 'Adicionando...' : `Adicionar ${addQty} número${addQty > 1 ? 's' : ''} (${addStart}–${fimNovo})`}
+              <button onClick={addNumeros} disabled={addSaving || !hasAddStart || fimNovo === null} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-50 transition-colors">
+                {addSaving ? 'Adicionando...' : addButtonLabel}
               </button>
               {addAlert && (
                 <div className={`mt-3 rounded-xl px-4 py-2.5 text-sm ${addAlert.tipo === 'ok' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
@@ -266,7 +353,7 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               {[
-                ['Disponíveis', rifa.total_numbers - pending.length - paid.length, 'text-gray-800'],
+                ['Disponíveis', totalAtivo - pending.length - paid.length, 'text-gray-800'],
                 ['Reservados', pending.length, 'text-amber-700'],
                 ['Pagos', paid.length, 'text-emerald-700'],
               ].map(([label, val, cls]) => (

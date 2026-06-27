@@ -14,12 +14,15 @@
 2. Guarde a **URL** e a **anon key** (Settings > API)
 3. Guarde também a **service_role key** (usada nas API routes)
 
-### 1.2 Executar a migration
+### 1.2 Executar as migrations
 No Supabase Dashboard, vá em **SQL Editor** e cole o conteúdo de:
 ```
 supabase/migrations/001_schema.sql
+supabase/migrations/002_juvenart.sql
+supabase/migrations/003_seguranca.sql
+supabase/migrations/004_number_ranges.sql
 ```
-Clique em **Run**.
+Execute na ordem acima (um script por vez) e clique em **Run** em cada um.
 
 ### 1.3 Criar os usuários admin (email/senha)
 1. No Supabase: **Authentication > Users > Add user > Create new user**

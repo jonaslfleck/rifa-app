@@ -12,6 +12,7 @@ create table rifas (
   description   text,
   total_numbers int not null default 100,
   start_number  int not null default 1,
+  number_ranges jsonb not null default '[]'::jsonb,
   price         numeric(10,2) not null default 10,
   draw_date     date,
   pix_type      text,
@@ -52,12 +53,13 @@ create trigger reservas_updated_at
   before update on reservas
   for each row execute function set_updated_at();
 
-insert into rifas (title, description, total_numbers, start_number, price, pix_type, pix_key, pix_name, pix_city, admin_emails, prizes)
+insert into rifas (title, description, total_numbers, start_number, number_ranges, price, pix_type, pix_key, pix_name, pix_city, admin_emails, prizes)
 values (
   'Rifa das Pilchas de Vinícius Prezzi Fleck - DTG Camboatá',
   'Adquira seus números e ajude a continuar o sonho do Juvenart 2026.',
   80,
   5521,
+  jsonb_build_array(jsonb_build_object('start', 5521, 'end', 5600)),
   5.00,
   'CPF',
   '048.520.540-88',
@@ -130,6 +132,7 @@ values (
 update rifas set
   title        = 'Rifa das Pilchas de Vinícius Prezzi Fleck - DTG Camboatá',
   description  = 'Adquira seus números e ajude a continuar o sonho do Juvenart 2026.',
+  number_ranges = coalesce(number_ranges, '[]'::jsonb),
   price        = 5.00,
   pix_type     = 'CPF',
   pix_key      = '048.520.540-88',

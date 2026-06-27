@@ -1,9 +1,15 @@
+export interface NumberRange {
+  start: number
+  end: number
+}
+
 export interface Rifa {
   id: string
   title: string
   description: string | null
   total_numbers: number
   start_number: number
+  number_ranges?: NumberRange[] | null
   price: number
   draw_date: string | null
   pix_type: string | null
