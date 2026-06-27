@@ -628,7 +628,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           <button
             onClick={focarNome}
             aria-label={`Ir para reserva (${selecionados.length})`}
-            className="fixed right-4 bottom-24 sm:bottom-6 z-40 rounded-full bg-red-700 hover:bg-red-800 text-white shadow-lg border border-red-900/20 px-4 py-2.5 text-sm font-semibold transition-colors"
+            className="hidden sm:block fixed right-4 bottom-6 z-40 rounded-full bg-red-700 hover:bg-red-800 text-white shadow-lg border border-red-900/20 px-4 py-2.5 text-sm font-semibold transition-colors"
           >
             Ir para reserva ({selecionados.length})
           </button>
