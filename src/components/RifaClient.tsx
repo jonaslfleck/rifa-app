@@ -550,7 +550,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 {disponiveis} disponíveis
               </span>
               {selecionados.length > 0 && (
-                <button onClick={irParaReserva} className="text-xs font-semibold bg-red-100 text-red-700 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-200 transition-colors">
+                <button onClick={focarNome} className="text-xs font-semibold bg-red-100 text-red-700 border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-200 transition-colors">
                   Ir para reserva ({selecionados.length})
                 </button>
               )}
@@ -560,7 +560,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
           {/* Legenda */}
           <div className="flex gap-4 flex-wrap text-xs text-gray-500 mb-4">
             <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-gray-200 bg-white inline-block"></span>Disponível</span>
-            <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border-2 border-amber-500 bg-amber-50 inline-block"></span>Selecionado</span>
+            <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border-2 border-emerald-700 bg-emerald-100 inline-block"></span>Selecionado</span>
             <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded border border-amber-300 bg-amber-50 inline-block"></span>Reservado</span>
           </div>
 
@@ -570,8 +570,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               const st = statusMap[n]
               const sel = selecionados.includes(n)
               let cls = 'h-14 rounded-xl border text-base font-semibold transition-all select-none '
-              if (st === 'reservado') cls += 'bg-amber-50 border-amber-200 text-amber-600 cursor-not-allowed'
-              else if (sel) cls += 'bg-amber-50 border-2 border-amber-500 text-amber-800 shadow-sm'
+              if (st === 'reservado') cls += 'bg-amber-50 border-amber-300 text-amber-700 cursor-not-allowed'
+              else if (sel) cls += 'bg-emerald-100 border-2 border-emerald-700 text-emerald-900 shadow-sm ring-1 ring-emerald-400'
               else cls += 'bg-white border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700 hover:bg-amber-50 cursor-pointer active:scale-95'
               return (
                 <button key={n} className={cls} disabled={st === 'reservado'} onClick={() => toggleNum(n)}>
@@ -622,6 +622,16 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               </button>
             </div>
           </div>
+        )}
+
+        {selecionados.length > 0 && (
+          <button
+            onClick={focarNome}
+            aria-label={`Ir para reserva (${selecionados.length})`}
+            className="fixed right-4 bottom-24 sm:bottom-6 z-40 rounded-full bg-red-700 hover:bg-red-800 text-white shadow-lg border border-red-900/20 px-4 py-2.5 text-sm font-semibold transition-colors"
+          >
+            Ir para reserva ({selecionados.length})
+          </button>
         )}
 
         {selecionados.length > 0 && (
