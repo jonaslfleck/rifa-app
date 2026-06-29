@@ -238,7 +238,9 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     setSelecionados(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n].sort((a, b) => a - b))
   }
 
-  function abrirModal() {
+  async function reservarEAbrirPix() {
+    if (!rifa || enviando) return
+
     if (!nome.trim()) {
       setAlerta({ tipo: 'err', msg: 'Preencha seu nome para continuar.' })
       focarNome()
@@ -255,19 +257,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       setSelecionados(prev => prev.filter(n => !ocupados.includes(n)))
       return
     }
+
     setAlerta(null)
-    setModalOpen(true)
-  }
-
-  async function confirmarReserva() {
-    if (!rifa) {
-      setAlerta({
-        tipo: 'err',
-        msg: 'Rifa não configurada.'
-      })
-      return
-    }
-
     setEnviando(true)
 
     const { error } = await supabase.from('reservas').insert(
@@ -318,16 +309,19 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       }),
     }).catch(() => {})
 
+    setModalOpen(true)
+    refreshOcupados()
+  }
+
+  function fecharModalPix() {
     setModalOpen(false)
     setSelecionados([])
     setNome('')
     setTelefone('')
-    refreshOcupados()
     setAlerta({
       tipo: 'ok',
-      msg: 'Reserva feita! Efetue o pagamento via Pix para confirmar.'
+      msg: 'Números reservados por até 24 horas! Faça o Pix para garantir a confirmação. Após esse prazo, sem pagamento, eles voltam a ficar disponíveis.'
     })
-
     setTimeout(() => setAlerta(null), 6000)
   }
 
@@ -614,8 +608,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
               </div>
             )}
             <div className="flex gap-2">
-              <button onClick={abrirModal} className="flex-1 bg-red-700 hover:bg-red-800 active:scale-[0.99] text-white rounded-xl py-3.5 text-base font-semibold transition-all">
-                Reservar {selecionados.length} número{selecionados.length > 1 ? 's' : ''}
+              <button onClick={reservarEAbrirPix} disabled={enviando} className="flex-1 bg-red-700 hover:bg-red-800 active:scale-[0.99] text-white rounded-xl py-3.5 text-base font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                {enviando ? 'Reservando...' : 'Reservar via Pix'}
               </button>
               <button onClick={() => setSelecionados([])} className="border border-gray-300 rounded-xl px-5 py-3.5 text-base font-semibold text-stone-700 hover:bg-gray-50 transition-colors">
                 Limpar
@@ -641,8 +635,8 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
                 <p className="text-sm text-stone-700">Selecionados: <strong className="text-red-700">{selecionados.length}</strong></p>
                 <p className="text-base font-extrabold text-red-700">R$ {total.toFixed(2).replace('.', ',')}</p>
               </div>
-              <button onClick={abrirModal} className="bg-red-700 hover:bg-red-800 text-white rounded-xl px-4 py-2.5 text-base font-semibold">
-                Reservar agora
+              <button onClick={reservarEAbrirPix} disabled={enviando} className="bg-red-700 hover:bg-red-800 text-white rounded-xl px-4 py-2.5 text-base font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+                {enviando ? 'Reservando...' : 'Reservar via Pix'}
               </button>
             </div>
           </div>
@@ -657,50 +651,51 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold text-stone-900 mb-2">Confirmar reserva</h2>
-            <p className="text-base text-stone-700 mb-4 leading-relaxed">
-              {nome}, você está reservando {selecionados.length} número{selecionados.length > 1 ? 's' : ''}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-amber-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
-            </p>
+          <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="overflow-y-auto pr-1 -mr-1 pb-4">
+              <h2 className="text-lg font-bold text-stone-900 mb-2">Pagamento via Pix</h2>
+              <p className="text-base text-stone-700 mb-4 leading-relaxed">
+                {nome}, seus {selecionados.length} número{selecionados.length > 1 ? 's já foram reservados' : ' já foi reservado'}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-amber-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
+              </p>
 
-            {!telefoneValido && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
-                <p className="text-sm text-red-700 font-semibold">
-                  Número de telefone inválido. Corrija o telefone na seção de reserva para confirmar.
-                </p>
-              </div>
-            )}
-
-            {rifa.pix_key && rifa.pix_name && (
-              <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mb-4 text-center">
-                <p className="text-sm font-semibold text-stone-900 mb-2">Pague via Pix após reservar</p>
-                <p className="text-sm text-stone-700">{rifa.pix_type}: <strong className="text-stone-900 break-all">{rifa.pix_key}</strong></p>
-                <p className="text-sm text-stone-700">Recebedor: <strong>{rifa.pix_name}</strong></p>
-                <p className="text-sm text-stone-700 mb-3">Banco: <strong>Sicredi</strong></p>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                  <p className="text-sm text-amber-900 font-semibold leading-relaxed">
-                    Confirme a sua reserva e após o pagamento, envie o comprovante via Whatsapp para confirmar seu número.
+              {!telefoneValido && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+                  <p className="text-sm text-red-700 font-semibold">
+                    Número de telefone inválido. Corrija o telefone na seção de reserva para confirmar.
                   </p>
                 </div>
-                <canvas ref={canvasRef} className="rounded-xl mx-auto block mb-3" />
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-sm hover:bg-stone-100 transition-colors font-semibold">
-                    {copiedKey ? '✓ Chave copiada!' : '🔑 Copiar chave PIX'}
-                  </button>
-                  <button onClick={copyPayload} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-sm hover:bg-stone-100 transition-colors font-semibold">
-                    {copied ? '✓ Copiado!' : '⧉ Copiar código Pix'}
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button onClick={() => setModalOpen(false)} className="flex-1 border border-gray-200 rounded-xl py-3.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
-                Cancelar
-              </button>
-              <button onClick={confirmarReserva} disabled={enviando || !telefoneValido} className="flex-1 bg-red-700 hover:bg-red-800 text-white rounded-xl py-3.5 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                {enviando ? 'Reservando...' : 'Confirmar'}
-              </button>
+              {rifa.pix_key && rifa.pix_name && (
+                <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mb-4 text-center">
+                  <p className="text-sm font-semibold text-stone-900 mb-2">Pague via Pix após reservar</p>
+                  <p className="text-sm text-stone-700">{rifa.pix_type}: <strong className="text-stone-900 break-all">{rifa.pix_key}</strong></p>
+                  <p className="text-sm text-stone-700">Recebedor: <strong>{rifa.pix_name}</strong></p>
+                  <p className="text-sm text-stone-700 mb-3">Banco: <strong>Sicredi</strong></p>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    <p className="text-sm text-amber-900 font-semibold leading-relaxed">
+                      Faça o pagamento Pix e envie o comprovante via Whatsapp para confirmar seus números. Eles ficam reservados por até 24 horas. Após esse prazo, sem pagamento, voltam a ficar disponíveis para venda.
+                    </p>
+                  </div>
+                  <canvas ref={canvasRef} className="rounded-xl mx-auto block mb-3" />
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <button onClick={copyPixKey} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-sm hover:bg-stone-100 transition-colors font-semibold">
+                      {copiedKey ? '✓ Chave copiada!' : '🔑 Copiar chave PIX'}
+                    </button>
+                    <button onClick={copyPayload} className="inline-flex items-center justify-center gap-1.5 border border-stone-400 text-stone-700 rounded-lg px-3 py-2 text-sm hover:bg-stone-100 transition-colors font-semibold">
+                      {copied ? '✓ Copiado!' : '⧉ Copiar código Pix'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-stone-200 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-0">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button onClick={fecharModalPix} className="flex-1 bg-red-700 hover:bg-red-800 text-white rounded-xl py-3.5 text-base font-semibold transition-colors">
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
         </div>
