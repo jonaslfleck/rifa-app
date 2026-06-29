@@ -99,6 +99,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const supabase = createClient()
   const [reservas, setReservas] = useState<NumeroStatus[]>(initialReservas)
   const [selecionados, setSelecionados] = useState<number[]>([])
+  const [numerosReservadosPix, setNumerosReservadosPix] = useState<number[]>([])
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -136,11 +137,11 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
   useEffect(() => {
     if (!modalOpen || !rifa?.pix_key || !rifa?.pix_name || !canvasRef.current) return
-    const total = (rifa.price ?? 0) * selecionados.length
+    const total = (rifa.price ?? 0) * numerosReservadosPix.length
     const payload = buildPixPayload(rifa.pix_key, rifa.pix_name, rifa.pix_city ?? 'SAO PAULO', total)
     payloadRef.current = payload
     QRCode.toCanvas(canvasRef.current, payload, { width: 200, margin: 1, color: { dark: '#166534', light: '#f0fdf4' } })
-  }, [modalOpen, rifa, selecionados])
+  }, [modalOpen, rifa, numerosReservadosPix])
 
   if (!rifa) return (
     <div className="flex items-center justify-center min-h-screen text-gray-400">Rifa não configurada.</div>
@@ -150,6 +151,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
   const statusMap = Object.fromEntries(reservas.map(r => [r.numero, r.status]))
   const visiveisNaGrade = nums.filter(n => statusMap[n] !== 'pago')
   const total = rifa.price * selecionados.length
+  const totalPix = rifa.price * numerosReservadosPix.length
   const disponiveis = visiveisNaGrade.filter(n => !statusMap[n]).length
   const totalSelecionavel = visiveisNaGrade.length
   const selectionStorageKey = `rifa:selected:${rifa.id}`
@@ -240,6 +242,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
 
   async function reservarEAbrirPix() {
     if (!rifa || enviando) return
+    const numerosParaReservar = [...selecionados]
 
     if (!nome.trim()) {
       setAlerta({ tipo: 'err', msg: 'Preencha seu nome para continuar.' })
@@ -251,7 +254,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
       focarTelefone()
       return
     }
-    const ocupados = selecionados.filter(n => statusMap[n])
+    const ocupados = numerosParaReservar.filter(n => statusMap[n])
     if (ocupados.length > 0) {
       setAlerta({ tipo: 'err', msg: `Número(s) ${ocupados.join(', ')} já reservados. Remova-os.` })
       setSelecionados(prev => prev.filter(n => !ocupados.includes(n)))
@@ -262,7 +265,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     setEnviando(true)
 
     const { error } = await supabase.from('reservas').insert(
-      selecionados.map(numero => ({
+      numerosParaReservar.map(numero => ({
         rifa_id: rifa.id,
         numero,
         nome: nome.trim(),
@@ -274,6 +277,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
     setEnviando(false)
 
     if (error) {
+      setNumerosReservadosPix([])
       setModalOpen(false)
       // 23505 = violação do índice único (rifa_id, numero): alguém reservou antes.
       if (error.code === '23505') {
@@ -305,16 +309,18 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
         rifaId: rifa.id,
         nome: nome.trim(),
         telefone: onlyDigits(telefone),
-        numeros: selecionados,
+        numeros: numerosParaReservar,
       }),
     }).catch(() => {})
 
+    setNumerosReservadosPix(numerosParaReservar)
     setModalOpen(true)
     refreshOcupados()
   }
 
   function fecharModalPix() {
     setModalOpen(false)
+    setNumerosReservadosPix([])
     setSelecionados([])
     setNome('')
     setTelefone('')
@@ -655,7 +661,7 @@ export default function RifaClient({ rifa, reservas: initialReservas }: Props) {
             <div className="overflow-y-auto pr-1 -mr-1 pb-4">
               <h2 className="text-lg font-bold text-stone-900 mb-2">Pagamento via Pix</h2>
               <p className="text-base text-stone-700 mb-4 leading-relaxed">
-                {nome}, seus {selecionados.length} número{selecionados.length > 1 ? 's já foram reservados' : ' já foi reservado'}: <strong className="text-gray-800">{selecionados.join(', ')}</strong> — total <strong className="text-amber-700">R$ {total.toFixed(2).replace('.', ',')}</strong>.
+                {nome}, seus {numerosReservadosPix.length} número{numerosReservadosPix.length > 1 ? 's já foram reservados' : ' já foi reservado'}: <strong className="text-gray-800">{numerosReservadosPix.join(', ')}</strong> — total <strong className="text-amber-700">R$ {totalPix.toFixed(2).replace('.', ',')}</strong>.
               </p>
 
               {!telefoneValido && (
