@@ -177,7 +177,10 @@ export default function AdminClient({ rifa: initialRifa, reservas: initialReserv
     addButtonLabel = `Adicionar ${addQty} número${qtySuffix} (${addStart}–${fimNovo})`
   }
   const paidGroups = paid.reduce<Record<string, Reserva[]>>((acc, r) => {
-    const key = (r.telefone ?? '').replace(/\D/g, '') || r.id
+    const telefoneKey = (r.telefone ?? '').replace(/\D/g, '')
+    const nomeKey = (r.nome ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+    const groupKey = `${nomeKey}|${telefoneKey}`
+    const key = groupKey === '|' ? r.id : groupKey
     ;(acc[key] ??= []).push(r)
     return acc
   }, {})
